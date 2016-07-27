@@ -1,0 +1,33 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="/bower_components/paper-card/paper-card.html">
+
+<dom-module id="page-profile">
+  <style is="custom-style">
+    h3 {
+      text-align: center;
+    }
+    .body-container {
+      padding-bottom: 20px;
+      margin: 20px;
+    }
+    paper-card {
+      width: 100%;
+    }
+  </style>
+  
+  <template>
+    <section class="body-container">      
+      <paper-card class="full">
+        <div class="card-content">
+          <h3>Profile Page</h3>
+        </div>
+      </paper-card>
+    </section>
+  </template>
+  
+  <script>
+    Polymer({
+      is: 'page-profile'
+    });
+  </script>
+</dom-module>

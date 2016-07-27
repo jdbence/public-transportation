@@ -1,0 +1,1 @@
+{"version":3,"sources":["styles.scss"],"names":[],"mappings":"AAAA,UAEE,SACA,SAAW,CACZ,mBAKC,qBAAuB,CACxB","file":"styles.css","sourcesContent":["html,\nbody {\n  margin: 0;\n  padding: 0;\n}\n\n*,\n*:after,\n*:before {\n  box-sizing: border-box;\n}"],"sourceRoot":"/source/"}

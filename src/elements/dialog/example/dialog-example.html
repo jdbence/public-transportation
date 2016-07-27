@@ -1,0 +1,43 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="/bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="/bower_components/paper-button/paper-button.html">
+<link rel="import" href="/bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<dom-module id="dialog-example">
+  
+  <style is="custom-style" include="iron-flex iron-flex-alignment">
+    
+    paper-dialog {
+      max-width: 100%;
+      width: 600px;
+      height: 600px;
+      overflow: inherit;
+      @apply(--layout-vertical);
+    }
+    
+    .body {
+      margin-top: 0;
+      width: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      @apply(--layout-flex);
+    }
+  </style>
+  <template>
+    <paper-dialog modal>
+      <section class="body">
+        <h3>Example Dialog</h3>
+      </section>
+      <div class="buttons">
+        <paper-button  title="Close" dialog-dismiss>Close</paper-button>
+      </div>
+    </paper-dialog>
+  </template>
+  
+  <script>
+    Polymer({
+      is: 'dialog-example'
+      
+    });
+  </script>
+</dom-module>
