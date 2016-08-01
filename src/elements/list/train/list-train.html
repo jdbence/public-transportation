@@ -1,0 +1,84 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="/bower_components/paper-item/paper-item.html">
+<link rel="import" href="/bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="/bower_components/paper-listbox/paper-listbox.html">
+
+<dom-module id="list-train">
+  <style is="custom-style">
+    .duration {
+      position: absolute;
+      right: 0;
+      top: 0;
+    }
+    .station {
+      background-color: red;
+      color: white;
+      padding: 0.5em;
+    }
+    paper-item {
+      border-bottom: 1px solid #ddd;
+    }
+    paper-item-body {
+      position: relative;
+    }
+  </style>
+  
+  <template>
+    <paper-listbox>
+      <template is="dom-repeat" items="{{trainRoutes}}" as="routes">
+        <paper-item>
+          <paper-item-body>
+              <span class='duration'>{{_totalDuration(routes)}} min</span>
+              <template is="dom-repeat" items="{{routes}}" as="station" index-as="sid">
+                <template is="dom-if" if="{{!_firstStation(sid)}}">
+                  <div>
+                    <span class="station">{{station.name}}</span>
+                  </div>
+                </template>
+                <div>
+                  <span>{{station.train}}</span>
+                </div>
+                <div>
+                  <span>{{station.start}}</span> => <span>{{station.end}}</span>
+                </div>
+              </template>
+          </paper-item-body>
+        </paper-item>
+      </template>
+    </paper-listbox>
+  </template>
+  
+  <script>
+    Polymer({
+      is: 'list-train',
+      properties: {
+         trainRoutes: {
+          type: Array,
+          value: function() {
+            return [
+              [
+                {name: 'Belmont', train:"#49", start:'8:00', end:'8:15', duration:'15'},
+                {name: 'Palo Alto', train:"#50", start:'8:15', end:'8:30', duration:'15'}
+              ],
+              [
+                {name: 'Belmont', train:"#49", start:'9:00', end:'9:30', duration:'30'}
+              ]
+            ];
+          },
+          notify: true
+        }
+      },
+      _totalDuration: function(routes) {
+        var total = 0;
+        routes.forEach(function (value, i) {
+            total += parseInt(value.duration);
+        });
+        return total;
+      },
+      _firstStation: function(index) {
+        console.log('_firstStation', index);
+        return index === 0;
+      }
+    });
+  </script>
+</dom-module>

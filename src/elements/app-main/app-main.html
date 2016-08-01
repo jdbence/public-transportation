@@ -5,6 +5,7 @@
 <link rel="import" href="/bower_components/app-route/app-route-converter.html">
 
 <link rel="import" href="/bower_components/app-layout/app-layout.html">
+<link rel="import" href="/bower_components/app-layout/app-box/app-box.html">
 <link rel="import" href="/bower_components/font-roboto/roboto.html">
 
 <link rel="import" href="/bower_components/iron-icons/iron-icons.html">
@@ -17,11 +18,14 @@
 <link rel="import" href="/bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="/bower_components/paper-material/paper-material.html">
 <link rel="import" href="/bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="/bower_components/paper-menu-button/paper-menu-button.html">
+
 <link rel="import" href="/bower_components/paper-item/paper-item.html">
+<link rel="import" href="/bower_components/paper-input/paper-input.html">
 
 <link rel="import" href="/elements/page/home/page-home.html">
-<link rel="import" href="/elements/page/profile/page-profile.html">
 <link rel="import" href="/elements/dialog/example/dialog-example.html">
+<link rel="import" href="/elements/list/train/list-train.html">
 
 <dom-module id="app-main">
   
@@ -39,12 +43,31 @@
       --paper-icon-button-ink-color: white;
     }
     
+    iron-pages {
+      height: 100%;
+    }
+    
     @media (min-width: 801px) {
       .narrow-only {
         display: none !important;
       }
     }
     
+    .flex-horizontal {
+      @apply(--layout-horizontal);
+    }
+    .flexpage {
+      @apply(--layout-flex);
+    }
+    .container {
+      height: 100%;
+    }
+    .options {
+      width: 250px;
+    }
+    .options-stations {
+      padding: 0px 16px;
+    }
   </style>
   
   <template id="app-main">
@@ -52,26 +75,28 @@
     <app-route-converter path="{{path}}" route="{{route}}" query-params="{{queryParams}}"></app-route-converter>
     <app-route route="{{route}}" pattern="/:page" data="{{data}}" tail="{{subroute}}"></app-route>
     <app-route route="{{subroute}}" pattern="/:key" data="{{subrouteData}}"></app-route>
-    <app-drawer-layout >
-      <app-drawer id="startDrawer" align="start" >
-        <paper-menu attr-for-selected="data-url" selected="{{data.page}}">
-          <paper-item data-url="home">Home</paper-item>
-          <paper-item data-url="profile">Profile</paper-item>
-        </paper-menu>
-      </app-drawer>
-      <app-header-layout>
-        <app-header fixed>
-          <app-toolbar>
-            <paper-icon-button icon="menu" class="narrow-only" drawer-toggle></paper-icon-button>
-            <div title>{{data.page}}</div>
-          </app-toolbar>
-        </app-header>
+    <div class="container flex-horizontal">
+      <div class="options">
+        <div class="options-stations">
+          <paper-input label="Depart From"></paper-input>
+          <paper-input label="Arrive To"></paper-input>
+        </div>
+        <paper-menu-button horizontal-align="right">
+          <paper-button class="dropdown-trigger"><iron-icon icon="arrow-drop-down"></iron-icon>{{_dayLabel(dayIndex)}}</paper-button>
+          <paper-menu class="dropdown-content" selected="{{dayIndex}}">
+            <paper-item>Weekday</paper-item>
+            <paper-item>Saturday</paper-item>
+            <paper-item>Sunday</paper-item>
+          </paper-menu>
+        </paper-menu-button>
+        <list-train />
+      </div>
+      <div class="flexpage">
         <iron-pages id="pages" attr-for-selected="data-url" selected="[[data.page]]" fallback-selection="home">
           <page-home data-url="home" key="[[subrouteData.key]]"></page-home>
-          <page-profile data-url="profile" key="[[subrouteData.key]]"></page-profile>
         </iron-pages>
-      </app-header-layout>
-    </app-drawer-layout>
+      </div>
+    </div>
     <dialog-example id="dialogExample"></dialog-example>
   </template>
   
@@ -79,8 +104,39 @@
     Polymer({
       is: 'app-main',
       properties: {
+        dayIndex: {
+          type: Number,
+          value: 0,
+          observer: '_dayIndexChanged'
+        },
         route: {
           type: Object
+        },
+        trainRoutes: [
+            {
+              train: "#49",
+              station: "Belmont",
+              start: "8:00",
+              end: "8:15",
+              duration: 15
+            },
+            {
+              train: "#50",
+              station: "Palo Alto",
+              start: "8:15",
+              end: "8:30",
+              duration: 15
+            }
+        ],
+        employees: {
+          type: Array,
+          value: function() {
+            return [
+              {first: 'Bob', last: 'Smith'},
+              {first: 'Sally', last: 'Johnson'}
+            ];
+          },
+          notify: true
         },
         data: {
           type: Object,
@@ -95,6 +151,19 @@
       ready: function() {
         document.getElementById('skeleton').remove();
         Polymer.dom(this).removeAttribute('unresolved');
+      },
+      _dayLabel: function(newIndex){
+        switch(newIndex){
+          case 1:
+            return "Saturday";
+          case 2:
+            return "Sunday";
+          default:
+            return "Weekday";
+        }
+      },
+      _dayIndexChanged: function(newIndex, oldIndex) {
+        
       }
     });
   </script>
