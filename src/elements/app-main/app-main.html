@@ -26,6 +26,7 @@
 <link rel="import" href="/elements/page/home/page-home.html">
 <link rel="import" href="/elements/dialog/example/dialog-example.html">
 <link rel="import" href="/elements/list/train/list-train.html">
+<link rel="import" href="/elements/db/db.html">
 
 <dom-module id="app-main">
   
@@ -89,7 +90,7 @@
             <paper-item>Sunday</paper-item>
           </paper-menu>
         </paper-menu-button>
-        <list-train />
+        <list-train list=[[trainRoutes]] />
       </div>
       <div class="flexpage">
         <iron-pages id="pages" attr-for-selected="data-url" selected="[[data.page]]" fallback-selection="home">
@@ -112,32 +113,6 @@
         route: {
           type: Object
         },
-        trainRoutes: [
-            {
-              train: "#49",
-              station: "Belmont",
-              start: "8:00",
-              end: "8:15",
-              duration: 15
-            },
-            {
-              train: "#50",
-              station: "Palo Alto",
-              start: "8:15",
-              end: "8:30",
-              duration: 15
-            }
-        ],
-        employees: {
-          type: Array,
-          value: function() {
-            return [
-              {first: 'Bob', last: 'Smith'},
-              {first: 'Sally', last: 'Johnson'}
-            ];
-          },
-          notify: true
-        },
         data: {
           type: Object,
           value: function() {
@@ -146,11 +121,31 @@
         },
         subrouteData: {
           type: Object
+        },
+        depart: 'Belmont',
+        arrive: 'Mountain View',
+        trainRoutes: {
+          type: Array,
+          value: function() {
+            return [];
+          }
         }
       },
       ready: function() {
         document.getElementById('skeleton').remove();
         Polymer.dom(this).removeAttribute('unresolved');
+        
+        this.db = new DB('caltrain');
+        
+        // connect local database
+        this.db.connect()
+        .then(() => {
+          // find default route
+          this.db.findRoutes(this.depart, this.arrive, this._dayLabel(this.dayIndex))
+          .then((data) => {
+            this.set('trainRoutes', data);
+          });
+        });
       },
       _dayLabel: function(newIndex){
         switch(newIndex){

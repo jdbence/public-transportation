@@ -7,15 +7,15 @@
     <meta name="description" content="polymer-seed">
     <meta name="author" content="Joshua Bence">
     <base href="/<!-- @echo BASE_URL -->">
-    <link rel="stylesheet" href="styles/style.css" />
     <link rel="import" href="elements/elements.html" async />
     <style>
       html, body {
-        margin: 0;
         font-family: 'Roboto', 'Noto', sans-serif;
         background-color: #fafafa;
         height: 100%;
         width: 100%;
+        margin: 0;
+        padding: 0;
       }
       #skeleton .header {
         height: 64px;
@@ -24,6 +24,11 @@
       }
       events-app[unresolved] {
         display: none;
+      }
+      *,
+      *:after,
+      *:before {
+        box-sizing: border-box;
       }
     </style>
   </head>

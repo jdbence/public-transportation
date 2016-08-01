@@ -25,14 +25,14 @@
   
   <template>
     <paper-listbox>
-      <template is="dom-repeat" items="{{trainRoutes}}" as="routes">
+      <template is="dom-repeat" items="{{list}}" as="routes">
         <paper-item>
           <paper-item-body>
               <span class='duration'>{{_totalDuration(routes)}} min</span>
               <template is="dom-repeat" items="{{routes}}" as="station" index-as="sid">
                 <template is="dom-if" if="{{!_firstStation(sid)}}">
                   <div>
-                    <span class="station">{{station.name}}</span>
+                    <span class="station">{{station.name}} Transfer</span>
                   </div>
                 </template>
                 <div>
@@ -52,18 +52,10 @@
     Polymer({
       is: 'list-train',
       properties: {
-         trainRoutes: {
+         list: {
           type: Array,
           value: function() {
-            return [
-              [
-                {name: 'Belmont', train:"#49", start:'8:00', end:'8:15', duration:'15'},
-                {name: 'Palo Alto', train:"#50", start:'8:15', end:'8:30', duration:'15'}
-              ],
-              [
-                {name: 'Belmont', train:"#49", start:'9:00', end:'9:30', duration:'30'}
-              ]
-            ];
+            return [];
           },
           notify: true
         }

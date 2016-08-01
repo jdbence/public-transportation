@@ -97,7 +97,7 @@ gulp.task('live', ['build'], function () {
       port: 8081
     },
     server: {
-      baseDir: [config.dist],
+      baseDir: [config.dist, 'static'],
       routes: {
         '/node_modules': 'node_modules',
         '/bower_components': 'bower_components',
