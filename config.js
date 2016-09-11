@@ -1,7 +1,7 @@
 var Config = {
   dist: './dist',
   src: './src',
-  tmp: './tmp',
+  tmp: './.tmp',
   github: {
     context: {
       BASE_URL: 'polymer-seed/dist/'

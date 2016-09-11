@@ -5,6 +5,10 @@
 
 <dom-module id="list-train">
   <style is="custom-style">
+    .trip-header {
+      position: relative;
+      font-size: 0.8em;
+    }
     .duration {
       position: absolute;
       right: 0;
@@ -25,23 +29,21 @@
   
   <template>
     <paper-listbox>
-      <template is="dom-repeat" items="{{list}}" as="routes">
+      <template is="dom-repeat" items="{{list}}" as="trip">
         <paper-item>
+          
           <paper-item-body>
-              <span class='duration'>{{_totalDuration(routes)}} min</span>
-              <template is="dom-repeat" items="{{routes}}" as="station" index-as="sid">
-                <template is="dom-if" if="{{!_firstStation(sid)}}">
-                  <div>
-                    <span class="station">{{station.name}} Transfer</span>
-                  </div>
-                </template>
-                <div>
-                  <span>{{station.train}}</span>
-                </div>
-                <div>
-                  <span>{{station.start}}</span> => <span>{{station.end}}</span>
-                </div>
-              </template>
+            <div class='trip-header'>
+              <span>
+                #{{trip.trip_id}}
+              </span>
+              <span class='duration'>
+                {{_tripDuration(trip)}} min
+              </span>
+            </div>
+            <div>
+              <span>{{_tripSchedule(trip)}}</span>
+            </div>
           </paper-item-body>
         </paper-item>
       </template>
@@ -60,16 +62,31 @@
           notify: true
         }
       },
-      _totalDuration: function(routes) {
-        var total = 0;
-        routes.forEach(function (value, i) {
-            total += parseInt(value.duration);
-        });
-        return total;
+      _getTime: function(time) {
+        if(time.indexOf('25:') === 0){
+          time = time.split('25:').join('01:');
+          return new Date("2016/01/02 " + time).getTime();
+        }else if(time.indexOf('24:') === 0){
+          time = time.split('24:').join('00:');
+          return new Date("2016/01/02 " + time).getTime();
+        }
+        return new Date("2016/01/01 " + time).getTime();
       },
-      _firstStation: function(index) {
-        console.log('_firstStation', index);
-        return index === 0;
+      _getStandardTime: function(time) {
+        time = time.split(':');
+        var hr = Number(time[0]);
+        var min = Number(time[1]);
+        var val = '' + (hr > 12 ? hr - 12 : hr);
+        val += min < 10 ? ':0' + min : ':' + min;
+        val += hr < 12 ? 'am' : 'pm';
+        return val;
+      },
+      _tripSchedule: function (trip) {
+        return this._getStandardTime(trip.departure_time) + ' - ' + this._getStandardTime(trip.arrival_time);
+      },
+      _tripDuration: function(trip) {
+        var diff = Math.abs(this._getTime(trip.arrival_time) - this._getTime(trip.departure_time));
+        return Math.round(diff / 60000);
       }
     });
   </script>

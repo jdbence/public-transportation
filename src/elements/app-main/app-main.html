@@ -135,30 +135,29 @@
         document.getElementById('skeleton').remove();
         Polymer.dom(this).removeAttribute('unresolved');
         
-        this.db = new DB('caltrain');
+        this.db = new DB('caltrain', [
+          'calendar', 'calendar_dates', 'routes', 'stop_times', 'stops', 'trips'
+        ]);
         
         // connect local database
         this.db.connect()
-        .then(() => {
-          // find default route
-          this.db.findRoutes(this.depart, this.arrive, this._dayLabel(this.dayIndex))
-          .then((data) => {
-            this.set('trainRoutes', data);
-          });
-        });
+          // get default route
+          .then(this._updateTrainList.bind(this));
       },
       _dayLabel: function(newIndex){
-        switch(newIndex){
-          case 1:
-            return "Saturday";
-          case 2:
-            return "Sunday";
-          default:
-            return "Weekday";
+        var days = ["Weekday", "Saturday", "Sunday"];
+        return days[newIndex];
+      },
+      _updateTrainList: function() {
+        if(this.db){
+          this.db.findRoutes(this.depart, this.arrive, this._dayLabel(this.dayIndex))
+            .then(function(data) {
+              this.set('trainRoutes', data);
+            }.bind(this));
         }
       },
       _dayIndexChanged: function(newIndex, oldIndex) {
-        
+        this._updateTrainList();
       }
     });
   </script>

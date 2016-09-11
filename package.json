@@ -23,7 +23,11 @@
     "url": "https://github.com/jdbence/public-transportation/issues"
   },
   "homepage": "https://github.com/jdbence/public-transportation#readme",
-  "devDependencies": {},
+  "devDependencies": {
+    "babel-plugin-transform-runtime": "^6.12.0",
+    "gulp-crisper": "^1.1.0",
+    "gulp-if": "^2.0.1"
+  },
   "eslintConfig": {
     "extends": "google"
   },

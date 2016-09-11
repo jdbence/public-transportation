@@ -1,110 +1,204 @@
-class DB {
-  constructor(name) {
-    this.name = name;
-    this.schema = {};
-    this.addSchemas();
-  }
-  
-  connect() {
-    return this.importData();
-  }
-  
-  importData() {
-    return Promise.all([
-      this.importCSV(this.name + '/calendar.txt', 'calendar'),
-      this.importCSV(this.name + '/calendar_dates.txt', 'calendar_dates'),
-      this.importCSV(this.name + '/routes.txt', 'routes'),
-      this.importCSV(this.name + '/stop_times.txt', 'stop_times'),
-      this.importCSV(this.name + '/stops.txt', 'stops'),
-      this.importCSV(this.name + '/trips.txt', 'trips')
-    ]);
-  }
-  
-  addSchemas() {
-    // agency
-    
-    // calendar
-    this.defineSchema('calendar', ['service_id','monday','tuesday','wednesday',
-      'thursday','friday','saturday','sunday','start_date','end_date']);
-    
-    // calendar_dates
-    this.defineSchema('calendar_dates', ['service_id','date','exception_type']);
-    
-    // fare_attributes
-    
-    // fare_rules
-    
-    // routes
-    this.defineSchema('routes', ['route_id','route_short_name','route_long_name','route_type','route_color']);
-    
-    // stop_times
-    this.defineSchema('stop_times', ['trip_id','arrival_time','departure_time',
-      'stop_id','stop_sequence','pickup_type','drop_off_type']);
-
-    // stops
-    this.defineSchema('stops', ['stop_id','stop_code','stop_name','stop_lat',
-      'stop_lon','zone_id','stop_url','location_type','parent_station','platform_code','wheelchair_boarding']);
-    
-    // trips
-    this.defineSchema('trips', ['route_id','service_id','trip_id','trip_headsign',
-      'trip_short_name','direction_id','shape_id','wheelchair_accessible','bikes_allowed']);
-  }
-  
-  defineSchema(name, props) {
-    this.schema[name] = persistence.define(name, this.textProps(props));
-  }
-  
-  textProps(keys) {
-    var def = {};
-    keys.forEach(function(item){
-      def[item] = 'TEXT';
-    });
-    return def;
-  }
-  
-  importCSV(url, name) {
-    return this.loadFile(url, name)
-      .then((str) => {
-        var rows = str.split('\n');
-        var headers = rows[0].split(',');
-        for(var i = 1; i < rows.length; i++) {
-          var data = rows[i].split(',');
-          var obj = {};
-          for(var j = 0; j < data.length; j++) {
-             obj[headers[j].trim()] = data[j].trim();
-          }
-          persistence.add(new this.schema[name](obj));
-        }
-      });
-  }
-  
-  loadFile(url, name) {
-    return new Promise(function (resolve, reject) {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', url);
-      xhr.onload = function () {
-        if (this.status >= 200 && this.status < 300) {
-          resolve(xhr.response);
-        } else {
-          reject();
-        }
-      };
-      xhr.onerror = reject;
-      xhr.send();
-    });
-  }
-  
-  findRoutes(depart, arrive, day) {
-    return new Promise(function(resolve, reject) {
-      resolve([
-        [
-          {name: 'Belmont', train:"#49", start:'8:00', end:'8:15', duration:'15'},
-          {name: 'Palo Alto', train:"#50", start:'8:15', end:'8:30', duration:'15'}
-        ],
-        [
-          {name: 'Belmont', train:"#49", start:'9:00', end:'9:30', duration:'30'}
-        ]
-      ]);
-    });
-  }
+function DB(name, tables) {
+  this.name = name;
+  this.tables = tables;
+  this.db = null;
+  this.schema = new Schema(this.name);
 }
+  
+DB.prototype.connect = function() {
+  return this.schema.connect()
+    .then(this.importData.bind(this));
+};
+
+DB.prototype.tablePromises = function(tables) {
+  var promises = [];
+  for(var i = 0; i < tables.length; i++) {
+    promises.push(this.importCSV(this.name + '/' + tables[i] + '.txt', tables[i]));
+  }
+  return promises;
+};
+
+DB.prototype.importCSV = function(url, name) {
+  var table = this.db.getSchema().table(name);
+  return this.loadFile(url)
+    .then(function(str) {
+      var rows = [];
+      var lines = str.split('\n');
+      // has columns and data
+      if(lines.length >= 1) {
+        var headers = lines[0].split(',');
+        for(var i = 1; i < lines.length; i++) {
+          var data = lines[i].split(',');
+          // line has data
+          if(data.length > 0){
+            var obj = {id: i - 1};
+            for(var j = 0; j < data.length; j++) {
+               obj[headers[j].trim()] = this.nonNull(data[j].trim());
+            }
+            rows.push(table.createRow(obj));
+          }
+        }
+        if(rows.length > 0) {
+          this.db
+            .insertOrReplace()
+            .into(table)
+            .values(rows).exec();
+        }
+      }
+    }.bind(this));
+};
+
+DB.prototype.nonNull = function(value) {
+  return value ? value : "";
+};
+
+DB.prototype.loadFile = function(url) {
+  return new Promise(function (resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url);
+    xhr.onload = function () {
+      if (this.status >= 200 && this.status < 300) {
+        resolve(xhr.response);
+      } else {
+        reject();
+      }
+    };
+    xhr.onerror = reject;
+    xhr.send();
+  });
+};
+
+DB.prototype.importData = function(database) {
+  //console.log('db', database);
+  
+  this.db = database;
+  
+  return Promise.all(this.tablePromises(this.tables));
+};
+
+DB.prototype.service = function(day) {
+  var calendar = this.db.getSchema().table('calendar');
+  return this.db.select()
+    .from(calendar)
+    .where(calendar.id.eq(day))
+    .exec();
+};
+
+DB.prototype.departTrips = function(serviceID, station, time) {
+  var stops = this.db.getSchema().table('stops');
+  var stopTimes = this.db.getSchema().table('stop_times');
+  var trips = this.db.getSchema().table('trips');
+  var composite = lf.op.and.apply(null, [
+    stopTimes.trip_id.eq(trips.trip_id),
+    stopTimes.stop_id.eq(stops.stop_id),
+    stops.stop_name.eq(station),
+    stopTimes.departure_time.gt(time),
+    trips.service_id.eq(serviceID)
+  ]);
+  return this.db
+    .select(stopTimes.trip_id.as('trip_id'), stopTimes.departure_time.as('departure_time'), stops.stop_name.as('stop_name'))
+    .from(stopTimes, trips, stops)
+    .limit(20)
+    .where(
+      composite
+    )
+    .orderBy(stopTimes.trip_id)
+    .orderBy(stopTimes.departure_time)
+    .exec();
+};
+
+DB.prototype.arriveTrips = function(trip_ids, serviceID, station, time) {
+  var stops = this.db.getSchema().table('stops');
+  var stopTimes = this.db.getSchema().table('stop_times');
+  var trips = this.db.getSchema().table('trips');
+  var composite = lf.op.and.apply(null, [
+    stopTimes.trip_id.eq(trips.trip_id),
+    stopTimes.stop_id.eq(stops.stop_id),
+    stopTimes.trip_id.in(trip_ids),
+    stops.stop_name.eq(station),
+    stopTimes.departure_time.gt(time),
+    trips.service_id.eq(serviceID)
+  ]);
+  return this.db
+    .select(stopTimes.trip_id.as('trip_id'), stopTimes.departure_time.as('departure_time'))
+    .from(stopTimes, trips, stops)
+    .where(
+      composite
+    )
+    .orderBy(stopTimes.trip_id)
+    .orderBy(stopTimes.departure_time)
+    .exec();
+};
+
+DB.prototype.tripInfo = function(trip_ids, serviceID, depart, arrive, time) {
+  var stops = this.db.getSchema().table('stops');
+  var stopTimes = this.db.getSchema().table('stop_times');
+  var trips = this.db.getSchema().table('trips');
+  var composite = lf.op.and.apply(null, [
+    stopTimes.trip_id.eq(trips.trip_id),
+    stopTimes.stop_id.eq(stops.stop_id),
+    stops.stop_name.in([depart, arrive]),
+    stopTimes.trip_id.in(trip_ids),
+    trips.service_id.eq(serviceID)
+  ]);
+  return this.db
+    .select(stopTimes.trip_id.as('trip_id'), stopTimes.stop_id.as('stop_id'),
+      stopTimes.departure_time.as('departure_time'), stopTimes.arrival_time.as('arrival_time'), stops.stop_name.as('stop_name'))
+    .from(stopTimes, trips, stops)
+    .where(
+      composite
+    )
+    .orderBy(stopTimes.trip_id)
+    .orderBy(stopTimes.departure_time)
+    .exec();
+};
+
+DB.prototype.findRoutes = function(depart, arrive, day) {
+  depart = "Belmont Caltrain";
+  arrive = "Mt View Caltrain";
+  
+  //var time = new Date().toTimeString().split(' ')[0];
+  var time = '19:00:00';
+  var dayIndex = day === "Weekday" ? 0 : (day === "Saturday" ? 1 : 2);
+  var serviceID;
+  var departIDs;
+  var filteredIDs;
+  
+  // Get day service
+  return this.service(dayIndex)
+   // Get depart stations
+   .then(function(results) {
+    serviceID = results[0].service_id;
+    return this.departTrips(serviceID, depart, time);  
+   }.bind(this))
+   // Filter arrive stations
+   .then(function(results) {
+     departIDs = results.map(function(item) {
+       return item.trip_id;
+     });
+     return this.arriveTrips(departIDs, serviceID, arrive, time);
+   }.bind(this))
+   // Get trip information
+   .then(function(results) {
+     filteredIDs = results.map(function(item) {
+       return item.trip_id;
+     });
+     return this.tripInfo(filteredIDs, serviceID, depart, arrive, time);
+   }.bind(this))
+   // Filter out arrive -> depart trips
+   .then(function(results) {
+     var trips = [];
+     for(var i = 0; i < results.length; i+=2){
+       if(results[i].stop_name === depart){
+         trips.push({
+           trip_id: results[i].trip_id,
+           depart: depart,
+           arrive: arrive,
+           departure_time: results[i].departure_time,
+           arrival_time: results[i+1].arrival_time
+         });
+       }
+     }
+     return trips;
+   });
+};

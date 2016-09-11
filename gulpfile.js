@@ -4,9 +4,11 @@ var gulp = require('gulp'),
   eslint = require('gulp-eslint'),
   uglify = require('gulp-uglify'),
   concat = require('gulp-concat'),
-  bable = require('gulp-babel'),
+  babel = require('gulp-babel'),
   sourcemaps = require('gulp-sourcemaps'),
   vulcanize = require('gulp-vulcanize'),
+  crisper = require('gulp-crisper'),
+  gif = require('gulp-if'),
   preprocess = require('gulp-preprocess'),
   sequence = require('gulp-sequence'),
   browserSync = require('browser-sync'),
@@ -68,24 +70,31 @@ gulp.task('styles', function () {
 
 // concats JS files
 gulp.task('scripts', function () {
-  return gulp.src(config.src + '/js/**/*.js')
+  return gulp.src([config.tmp + '/elements/**/*.{js,html}'])
     .pipe(preprocess(processVariables))
+    .pipe(gif('*.html', crisper({
+      scriptInHead: false,
+      onlySplit: false
+    })))
     .pipe(sourcemaps.init())
-    .pipe(bable())
-    .pipe(concat('all.js'))
+    .pipe(gif('*.js', babel()))
+    //.pipe(concat('all.js'))
     .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest(config.dist + '/js'))
-})
+    //.pipe(gulp.dest(config.tmp))
+    .pipe(gulp.dest(config.dist));
+});
 
 // concats and minifies JS files
 gulp.task('scripts:prod', function () {
-  return gulp.src(config.src + '/js/**/*.js')
-    .pipe(preprocess(processVariables))
-    .pipe(bable())
-    .pipe(concat('all.js'))
-    .pipe(uglify())
-    .pipe(gulp.dest(config.dist + '/js'))
-})
+  return gulp.src([config.src + '/js/**/*.js', config.tmp + '/elements/**/*.js'])
+    //.pipe(preprocess(processVariables))
+    //.pipe(sourcemaps.init())
+    .pipe(babel())
+    .pipe(concat('elements.js'))
+    //.pipe(sourcemaps.write('.'))
+    //.pipe(gulp.dest(config.tmp))
+    .pipe(gulp.dest(config.dist + '/elements/'));
+});
 
 // reload file changes (html, js, scss)
 gulp.task('live', ['build'], function () {
@@ -126,6 +135,9 @@ gulp.task("reload-js", function (cb) {
 gulp.task('vulcanize', function() {
   return gulp.src(config.src + '/elements/elements.html')
     .pipe(vulcanize({
+      abspath: '',
+      excludes: [],
+      stripExcludes: false,
       stripComments: true,
       inlineCss: true,
       inlineScripts: true,
@@ -135,6 +147,11 @@ gulp.task('vulcanize', function() {
       ]
     }))
     .pipe(preprocess(processVariables))
+    .pipe(crisper({
+      scriptInHead: false,
+      onlySplit: true
+    }))
+    .pipe(gulp.dest(config.tmp + '/elements'))
     .pipe(gulp.dest(config.dist + '/elements'));
 });
 
