@@ -24,8 +24,7 @@
 <link rel="import" href="/bower_components/paper-input/paper-input.html">
 
 <link rel="import" href="/elements/page/home/page-home.html">
-<link rel="import" href="/elements/dialog/stations/dialog-depart.html">
-<link rel="import" href="/elements/dialog/stations/dialog-arrive.html">
+<link rel="import" href="/elements/dialog/stations/dialog-stations.html">
 <link rel="import" href="/elements/list/train/list-train.html">
 <link rel="import" href="/elements/lib/lodash.html">
 <link rel="import" href="/elements/db/db.html">
@@ -120,8 +119,8 @@
         </iron-pages>
       </div>
     </div>
-    <dialog-depart id="dialogDepart" stations={{stations}} selected={{departIndex}}></dialog-depart>
-    <dialog-arrive id="dialogArrive" stations={{stations}} selected={{arriveIndex}}></dialog-arrive>
+    <dialog-stations id="dialogDepart" title="Where are you leaving?" stations={{stations}} selected={{departIndex}}></dialog-stations>
+    <dialog-stations id="dialogArrive" title="Where are you headed?" stations={{stations}} selected={{arriveIndex}}></dialog-stations>
   </template>
   
   <script>

@@ -6,7 +6,7 @@
 <link rel="import" href="/bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="/bower_components/paper-styles/color.html">
 
-<dom-module id="dialog-arrive">
+<dom-module id="dialog-stations">
   
   <style is="custom-style" include="iron-flex iron-flex-alignment">
     
@@ -16,6 +16,12 @@
       height: 600px;
       overflow: inherit;
       @apply(--layout-vertical);
+    }
+    
+    @media only screen and (max-width: 667px) {
+      paper-dialog {
+        margin: 0px;
+      }
     }
     
     .body {
@@ -36,11 +42,11 @@
     }
   </style>
   <template>
-    <paper-dialog modal id="dialogArrive">
-      <h3>Where are you headed?</h3>
+    <paper-dialog modal id="dialog">
+      <h3>{{title}}</h3>
       <section class="body">
         <paper-listbox selected="{{selected}}">
-          <template is="dom-repeat" items="[[stations]]" as="s">
+          <template is="dom-repeat" items="{{stations}}" as="s">
             <paper-item class="station">{{s.stop_name}}</paper-item>
           </template>
         </paper-listbox>
@@ -53,8 +59,11 @@
   
   <script>
     Polymer({
-      is: 'dialog-arrive',
+      is: 'dialog-stations',
       properties: {
+        title: {
+          value: 'Default Title'
+        },
         stations: {
           type: Array,
           value: function() {
@@ -71,7 +80,7 @@
       },
       _selectedChanged: function(newVal, oldVal) {
         setTimeout(function(){
-          this.$.dialogArrive.close();
+          this.$.dialog.close();
         }.bind(this), 200);
       }
     });

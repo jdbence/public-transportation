@@ -21971,8 +21971,11 @@ It will also ensure that focus remains in the dialog.
       });
     })();
 Polymer({
-      is: 'dialog-depart',
+      is: 'dialog-stations',
       properties: {
+        title: {
+          value: 'Default Title'
+        },
         stations: {
           type: Array,
           value: function() {
@@ -21989,30 +21992,7 @@ Polymer({
       },
       _selectedChanged: function(newVal, oldVal) {
         setTimeout(function(){
-          this.$.dialogDepart.close();
-        }.bind(this), 200);
-      }
-    });
-Polymer({
-      is: 'dialog-arrive',
-      properties: {
-        stations: {
-          type: Array,
-          value: function() {
-            return [];
-          },
-          notify: true
-        },
-        selected: {
-          type: Number,
-          value: 0,
-          notify: true,
-          observer: '_selectedChanged'
-        }
-      },
-      _selectedChanged: function(newVal, oldVal) {
-        setTimeout(function(){
-          this.$.dialogArrive.close();
+          this.$.dialog.close();
         }.bind(this), 200);
       }
     });

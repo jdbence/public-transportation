@@ -3728,7 +3728,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
   </template>
 </dom-module>
-<dom-module id="dialog-depart" assetpath="../../../../../elements/dialog/stations/">
+<dom-module id="dialog-stations" assetpath="../../../../../elements/dialog/stations/">
   
   <style is="custom-style" include="iron-flex iron-flex-alignment">
     
@@ -3738,6 +3738,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       height: 600px;
       overflow: inherit;
       @apply(--layout-vertical);
+    }
+    
+    @media only screen and (max-width: 667px) {
+      paper-dialog {
+        margin: 0px;
+      }
     }
     
     .body {
@@ -3758,56 +3764,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
   </style>
   <template>
-    <paper-dialog modal="" id="dialogDepart">
-      <h3>Where are you departing?</h3>
+    <paper-dialog modal="" id="dialog">
+      <h3>{{title}}</h3>
       <section class="body">
         <paper-listbox selected="{{selected}}">
           <template is="dom-repeat" items="{{stations}}" as="s">
-            <paper-item class="station">{{s.stop_name}}</paper-item>
-          </template>
-        </paper-listbox>
-      </section>
-      <div class="buttons">
-        <paper-button title="Close" dialog-dismiss="">Close</paper-button>
-      </div>
-    </paper-dialog>
-  </template>
-  
-  </dom-module><dom-module id="dialog-arrive" assetpath="../../../../../elements/dialog/stations/">
-  
-  <style is="custom-style" include="iron-flex iron-flex-alignment">
-    
-    paper-dialog {
-      max-width: 100%;
-      width: 600px;
-      height: 600px;
-      overflow: inherit;
-      @apply(--layout-vertical);
-    }
-    
-    .body {
-      margin-top: 0;
-      width: 100%;
-      overflow-x: hidden;
-      overflow-y: auto;
-      @apply(--layout-flex);
-    }
-    paper-item.station {
-      --paper-item-focused-before: {
-        opacity: 0;
-      }
-      --paper-item-selected: {
-        color: white;
-        background: var(--paper-blue-500);
-      }
-    }
-  </style>
-  <template>
-    <paper-dialog modal="" id="dialogArrive">
-      <h3>Where are you headed?</h3>
-      <section class="body">
-        <paper-listbox selected="{{selected}}">
-          <template is="dom-repeat" items="[[stations]]" as="s">
             <paper-item class="station">{{s.stop_name}}</paper-item>
           </template>
         </paper-listbox>
@@ -3996,8 +3957,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </iron-pages>
       </div>
     </div>
-    <dialog-depart id="dialogDepart" stations="{{stations}}" selected="{{departIndex}}"></dialog-depart>
-    <dialog-arrive id="dialogArrive" stations="{{stations}}" selected="{{arriveIndex}}"></dialog-arrive>
+    <dialog-stations id="dialogDepart" title="Where are you leaving?" stations="{{stations}}" selected="{{departIndex}}"></dialog-stations>
+    <dialog-stations id="dialogArrive" title="Where are you headed?" stations="{{stations}}" selected="{{arriveIndex}}"></dialog-stations>
   </template>
   
   </dom-module></div></body></html>
