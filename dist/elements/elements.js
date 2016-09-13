@@ -21796,16 +21796,7 @@ Polymer({
 
   });
 Polymer({
-      is: 'page-home',
-      _handleClick: function(e) {
-        var id = e.currentTarget.getAttribute('data-dialog');
-        //TODO: Replace with this when Polymer fixes stacking issues
-        // var dialogContainer = this.$[id];
-        var dialogContainer = document.getElementById(id);
-        if (dialogContainer) {
-          dialogContainer.firstElementChild.open();
-        }
-      }
+      is: 'page-home'
     });
 /**
 Use `Polymer.PaperDialogBehavior` and `paper-dialog-shared-styles.html` to implement a Material Design
@@ -46953,6 +46944,13 @@ DB.prototype.findRoutes = function(depart, arrive, time, day) {
   var serviceID;
   var departIDs;
   var filteredIDs;
+  
+  // Return none if matching stations
+  if(depart === arrive){
+    return new Promise(function(resolve, reject) {
+      resolve([]);
+    });
+  }
   
   // Get day service
   return this.service(dayIndex)

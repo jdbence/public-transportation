@@ -9,7 +9,7 @@
     <base href="/<!-- @echo BASE_URL -->">
     <link rel="import" href="elements/elements.html" async />
     <style>
-      html, body {
+      html, body, #skeleton {
         font-family: 'Roboto', 'Noto', sans-serif;
         background-color: #fafafa;
         height: 100%;
@@ -18,9 +18,16 @@
         padding: 0;
       }
       #skeleton .header {
-        height: 64px;
+        height: 100%;
+        margin-left: 250px;
         background-color: #1e88e5;
         color: #fff;
+      }
+      @media only screen and (max-width: 667px) {
+        #skeleton .header {
+          height: 200px;
+          margin-left: 0;
+        }
       }
       events-app[unresolved] {
         display: none;

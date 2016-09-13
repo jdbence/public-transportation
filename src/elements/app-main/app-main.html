@@ -56,20 +56,40 @@
       }
     }
     
-    .flex-horizontal {
+    .flex-layout {
       @apply(--layout-horizontal);
     }
     .flexpage {
       @apply(--layout-flex);
     }
+    
     .container {
       height: 100%;
     }
     .options {
+      height: 100%;
+      overflow-y: scroll;
       width: 250px;
     }
     .options-stations {
       padding: 0px 16px;
+    }
+    
+    @media only screen and (max-width: 667px) {
+      .flex-layout {
+        @apply(--layout-vertical);
+      }
+      .flexpage {
+        height: 200px;
+        width: 100%;
+        flex: none;
+      }
+      .options {
+        width: 100%;
+        height: auto;
+        overflow-y: visible;
+        order: 3;
+      }
     }
   </style>
   
@@ -78,7 +98,7 @@
     <app-route-converter path="{{path}}" route="{{route}}" query-params="{{queryParams}}"></app-route-converter>
     <app-route route="{{route}}" pattern="/:page" data="{{data}}" tail="{{subroute}}"></app-route>
     <app-route route="{{subroute}}" pattern="/:key" data="{{subrouteData}}"></app-route>
-    <div class="container flex-horizontal">
+    <div class="container flex-layout">
       <div class="options">
         <div class="options-stations">
           <paper-input label="Depart From" value='[[depart]]' data-dialog="dialogDepart" on-tap="_handleClick"></paper-input>

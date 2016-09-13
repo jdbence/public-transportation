@@ -30,16 +30,7 @@
   
   <script>
     Polymer({
-      is: 'page-home',
-      _handleClick: function(e) {
-        var id = e.currentTarget.getAttribute('data-dialog');
-        //TODO: Replace with this when Polymer fixes stacking issues
-        // var dialogContainer = this.$[id];
-        var dialogContainer = document.getElementById(id);
-        if (dialogContainer) {
-          dialogContainer.firstElementChild.open();
-        }
-      }
+      is: 'page-home'
     });
   </script>
 </dom-module>

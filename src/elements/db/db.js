@@ -166,6 +166,13 @@ DB.prototype.findRoutes = function(depart, arrive, time, day) {
   var departIDs;
   var filteredIDs;
   
+  // Return none if matching stations
+  if(depart === arrive){
+    return new Promise(function(resolve, reject) {
+      resolve([]);
+    });
+  }
+  
   // Get day service
   return this.service(dayIndex)
    // Get depart stations
