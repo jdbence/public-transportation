@@ -3312,6 +3312,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 </dom-module>
 
+<dom-module id="paper-listbox" assetpath="../../../../../bower_components/paper-listbox/">
+  <template>
+    <style>
+      :host {
+        display: block;
+        padding: 8px 0;
+
+        background: var(--paper-listbox-background-color, --primary-background-color);
+        color: var(--paper-listbox-color, --primary-text-color);
+
+        @apply(--paper-listbox);
+      }
+    </style>
+
+    <content></content>
+  </template>
+
+  </dom-module>
+
 <dom-module id="iron-flex" assetpath="../../../../../bower_components/iron-flex-layout/">
   <template>
     <style>
@@ -3709,7 +3728,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
   </template>
 </dom-module>
-<dom-module id="dialog-example" assetpath="../../../../../elements/dialog/example/">
+<dom-module id="dialog-depart" assetpath="../../../../../elements/dialog/stations/">
   
   <style is="custom-style" include="iron-flex iron-flex-alignment">
     
@@ -3728,11 +3747,70 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       overflow-y: auto;
       @apply(--layout-flex);
     }
+    paper-item.station {
+      --paper-item-focused-before: {
+        opacity: 0;
+      }
+      --paper-item-selected: {
+        color: white;
+        background: var(--paper-blue-500);
+      }
+    }
   </style>
   <template>
-    <paper-dialog modal="">
+    <paper-dialog modal="" id="dialogDepart">
+      <h3>Where are you departing?</h3>
       <section class="body">
-        <h3>Example Dialog</h3>
+        <paper-listbox selected="{{selected}}">
+          <template is="dom-repeat" items="{{stations}}" as="s">
+            <paper-item class="station">{{s.stop_name}}</paper-item>
+          </template>
+        </paper-listbox>
+      </section>
+      <div class="buttons">
+        <paper-button title="Close" dialog-dismiss="">Close</paper-button>
+      </div>
+    </paper-dialog>
+  </template>
+  
+  </dom-module><dom-module id="dialog-arrive" assetpath="../../../../../elements/dialog/stations/">
+  
+  <style is="custom-style" include="iron-flex iron-flex-alignment">
+    
+    paper-dialog {
+      max-width: 100%;
+      width: 600px;
+      height: 600px;
+      overflow: inherit;
+      @apply(--layout-vertical);
+    }
+    
+    .body {
+      margin-top: 0;
+      width: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      @apply(--layout-flex);
+    }
+    paper-item.station {
+      --paper-item-focused-before: {
+        opacity: 0;
+      }
+      --paper-item-selected: {
+        color: white;
+        background: var(--paper-blue-500);
+      }
+    }
+  </style>
+  <template>
+    <paper-dialog modal="" id="dialogArrive">
+      <h3>Where are you headed?</h3>
+      <section class="body">
+        <paper-listbox selected="{{selected}}">
+          <template is="dom-repeat" items="[[stations]]" as="s">
+            <paper-item class="station">{{s.stop_name}}</paper-item>
+          </template>
+        </paper-listbox>
       </section>
       <div class="buttons">
         <paper-button title="Close" dialog-dismiss="">Close</paper-button>
@@ -3779,26 +3857,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   </dom-module>
-
-
-<dom-module id="paper-listbox" assetpath="../../../../../bower_components/paper-listbox/">
-  <template>
-    <style>
-      :host {
-        display: block;
-        padding: 8px 0;
-
-        background: var(--paper-listbox-background-color, --primary-background-color);
-        color: var(--paper-listbox-color, --primary-text-color);
-
-        @apply(--paper-listbox);
-      }
-    </style>
-
-    <content></content>
-  </template>
-
-  </dom-module>
 <dom-module id="list-train" assetpath="../../../../../elements/list/train/">
   <style is="custom-style">
     .trip-header {
@@ -3815,8 +3873,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       color: white;
       padding: 0.5em;
     }
-    paper-item {
+    paper-item.train {
       border-bottom: 1px solid #ddd;
+      --paper-item-focused-before: {
+        opacity: 0;
+      }
     }
     paper-item-body {
       position: relative;
@@ -3824,10 +3885,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </style>
   
   <template>
-    <paper-listbox>
+    <paper-listbox selected-class="">
       <template is="dom-repeat" items="{{list}}" as="trip">
-        <paper-item>
-          
+        <paper-item class="train">
           <paper-item-body>
             <div class="trip-header">
               <span>
@@ -3897,8 +3957,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="container flex-horizontal">
       <div class="options">
         <div class="options-stations">
-          <paper-input label="Depart From"></paper-input>
-          <paper-input label="Arrive To"></paper-input>
+          <paper-input label="Depart From" value="[[depart]]" data-dialog="dialogDepart" on-tap="_handleClick"></paper-input>
+          <paper-input label="Arrive To" value="[[arrive]]" data-dialog="dialogArrive" on-tap="_handleClick"></paper-input>
         </div>
         <paper-menu-button horizontal-align="right">
           <paper-button class="dropdown-trigger"><iron-icon icon="arrow-drop-down"></iron-icon>{{_dayLabel(dayIndex)}}</paper-button>
@@ -3916,7 +3976,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </iron-pages>
       </div>
     </div>
-    <dialog-example id="dialogExample"></dialog-example>
+    <dialog-depart id="dialogDepart" stations="{{stations}}" selected="{{departIndex}}"></dialog-depart>
+    <dialog-arrive id="dialogArrive" stations="{{stations}}" selected="{{arriveIndex}}"></dialog-arrive>
   </template>
   
   </dom-module></div></body></html>

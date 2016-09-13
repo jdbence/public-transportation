@@ -69,10 +69,7 @@ DB.prototype.loadFile = function(url) {
 };
 
 DB.prototype.importData = function(database) {
-  //console.log('db', database);
-  
   this.db = database;
-  
   return Promise.all(this.tablePromises(this.tables));
 };
 
@@ -153,12 +150,17 @@ DB.prototype.tripInfo = function(trip_ids, serviceID, depart, arrive, time) {
     .exec();
 };
 
-DB.prototype.findRoutes = function(depart, arrive, day) {
-  depart = "Belmont Caltrain";
-  arrive = "Mt View Caltrain";
-  
-  //var time = new Date().toTimeString().split(' ')[0];
-  var time = '19:00:00';
+DB.prototype.stations = function() {
+  var stops = this.db.getSchema().table('stops');
+  return this.db
+    .select(stops.stop_name)
+    .from(stops)
+    .orderBy(stops.stop_name)
+    .groupBy(stops.stop_name)
+    .exec();
+};
+
+DB.prototype.findRoutes = function(depart, arrive, time, day) {
   var dayIndex = day === "Weekday" ? 0 : (day === "Saturday" ? 1 : 2);
   var serviceID;
   var departIDs;

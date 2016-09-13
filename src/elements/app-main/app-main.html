@@ -24,8 +24,10 @@
 <link rel="import" href="/bower_components/paper-input/paper-input.html">
 
 <link rel="import" href="/elements/page/home/page-home.html">
-<link rel="import" href="/elements/dialog/example/dialog-example.html">
+<link rel="import" href="/elements/dialog/stations/dialog-depart.html">
+<link rel="import" href="/elements/dialog/stations/dialog-arrive.html">
 <link rel="import" href="/elements/list/train/list-train.html">
+<link rel="import" href="/elements/lib/lodash.html">
 <link rel="import" href="/elements/db/db.html">
 
 <dom-module id="app-main">
@@ -79,8 +81,8 @@
     <div class="container flex-horizontal">
       <div class="options">
         <div class="options-stations">
-          <paper-input label="Depart From"></paper-input>
-          <paper-input label="Arrive To"></paper-input>
+          <paper-input label="Depart From" value='[[depart]]' data-dialog="dialogDepart" on-tap="_handleClick"></paper-input>
+          <paper-input label="Arrive To" value='[[arrive]]' data-dialog="dialogArrive" on-tap="_handleClick"></paper-input>
         </div>
         <paper-menu-button horizontal-align="right">
           <paper-button class="dropdown-trigger"><iron-icon icon="arrow-drop-down"></iron-icon>{{_dayLabel(dayIndex)}}</paper-button>
@@ -98,7 +100,8 @@
         </iron-pages>
       </div>
     </div>
-    <dialog-example id="dialogExample"></dialog-example>
+    <dialog-depart id="dialogDepart" stations={{stations}} selected={{departIndex}}></dialog-depart>
+    <dialog-arrive id="dialogArrive" stations={{stations}} selected={{arriveIndex}}></dialog-arrive>
   </template>
   
   <script>
@@ -122,13 +125,43 @@
         subrouteData: {
           type: Object
         },
-        depart: 'Belmont',
-        arrive: 'Mountain View',
+        depart: {
+          type: String,
+          value: 'Belmont Caltrain'
+        },
+        departIndex: {
+          type: Number,
+          value: 0,
+          observer: '_departChanged'
+        },
+        arrive: {
+          type: String,
+          value: 'Mt View Caltrain'
+        },
+        arriveIndex: {
+          type: Number,
+          value: 0,
+          observer: '_arriveChanged'
+        },
+        time: {
+          type:String,
+          value: '01:00:00' //new Date().toTimeString().split(' ')[0]
+        },
         trainRoutes: {
           type: Array,
           value: function() {
             return [];
           }
+        },
+        stations: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+        ready: {
+          type: Boolean,
+          value: false
         }
       },
       ready: function() {
@@ -141,23 +174,62 @@
         
         // connect local database
         this.db.connect()
+          .then(this._updateStations.bind(this))
           // get default route
-          .then(this._updateTrainList.bind(this));
+          .then(this._updateTrainList.bind(this))
+          .then(function() {
+            this.set('ready', true);
+          }.bind(this));
       },
       _dayLabel: function(newIndex){
         var days = ["Weekday", "Saturday", "Sunday"];
         return days[newIndex];
       },
+      _updateStations: function() {
+        return this.db.stations()
+          .then(function(data){
+            this.set('stations', data);
+            this.set('departIndex', _.findIndex(data, {stop_name: this.depart}));
+            this.set('arriveIndex', _.findIndex(data, {stop_name: this.arrive}));
+          }.bind(this));
+      },
       _updateTrainList: function() {
         if(this.db){
-          this.db.findRoutes(this.depart, this.arrive, this._dayLabel(this.dayIndex))
+          this.db.findRoutes(this.depart, this.arrive, this.time, this._dayLabel(this.dayIndex))
             .then(function(data) {
               this.set('trainRoutes', data);
             }.bind(this));
         }
       },
       _dayIndexChanged: function(newIndex, oldIndex) {
-        this._updateTrainList();
+        if(this.ready){
+          this._updateTrainList();
+        }
+      },
+      _handleClick: function(e) {
+        var id = e.currentTarget.getAttribute('data-dialog');
+        var dialogContainer = document.getElementById(id);
+        if (dialogContainer) {
+          dialogContainer.firstElementChild.open();
+        }
+      },
+      _arriveChanged: function(newVal, oldVal) {
+        if(this.stations !== undefined && this.stations.length > 0){
+          this.set('arrive', this.stations[newVal].stop_name);
+          
+          if(this.ready){
+            this._updateTrainList();
+          }
+        }
+      },
+      _departChanged: function(newVal, oldVal) {
+        if(this.stations !== undefined && this.stations.length > 0){
+          this.set('depart', this.stations[newVal].stop_name);
+          
+          if(this.ready){
+            this._updateTrainList();
+          }
+        }
       }
     });
   </script>
