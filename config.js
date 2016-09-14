@@ -4,7 +4,7 @@ var Config = {
   tmp: './.tmp',
   github: {
     context: {
-      BASE_URL: 'polymer-transportation/dist/'
+      BASE_URL: 'public-transportation/dist/'
     }
   },
   production: {
