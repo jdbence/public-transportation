@@ -116,7 +116,7 @@
       </div>
       <div class="flexpage">
         <iron-pages id="pages" attr-for-selected="data-url" selected="[[data.page]]" fallback-selection="home">
-          <page-home data-url="home" key="[[subrouteData.key]]"></page-home>
+          <page-home data-url="home" key="[[subrouteData.key]]" arrive="[[arriveCoord]]" depart="[[departCoord]]"></page-home>
         </iron-pages>
       </div>
     </div>
@@ -160,6 +160,12 @@
           type: Number,
           observer: '_departIndexChanged'
         },
+        departCoord: {
+          type: Array,
+          value: function() {
+            return [0, 0];
+          }
+        },
         arriveStation: {
           type: String,
           value: 'Mt View Caltrain'
@@ -167,6 +173,12 @@
         arriveIndex: {
           type: Number,
           observer: '_arriveIndexChanged'
+        },
+        arriveCoord: {
+          type: Array,
+          value: function() {
+            return [0, 0];
+          }
         },
         time: {
           type:String,
@@ -216,6 +228,8 @@
             this.set('stations', data);
             this.set('departIndex', _.findIndex(data, {stop_name: this.departStation}));
             this.set('arriveIndex', _.findIndex(data, {stop_name: this.arriveStation}));
+            this._updateStationCoord('departCoord', this.departIndex);
+            this._updateStationCoord('arriveCoord', this.arriveIndex);
           }.bind(this));
       },
       _updateTrainList: function() {
@@ -225,6 +239,11 @@
               this.set('trainRoutes', data);
             }.bind(this));
         }
+      },
+      _updateStationCoord: function(coord, index) {
+        var s = this.stations[index];
+        this.set(coord, [s.stop_lat, s.stop_lon]);
+        window.dispatchEvent(new Event('resize'));
       },
       _dayIndexChanged: function(newIndex, oldIndex) {
         if(this.ready){
@@ -243,7 +262,7 @@
           
           if(this.stations[newVal]){
             this.set('arriveStation', this.stations[newVal].stop_name);
-            
+            this._updateStationCoord('arriveCoord', newVal);
             if(this.ready){
               this._updateTrainList();
             }
@@ -255,7 +274,7 @@
           
           if(this.stations[newVal]){
             this.set('departStation', this.stations[newVal].stop_name);
-            
+            this._updateStationCoord('departCoord', newVal);
             if(this.ready){
               this._updateTrainList();
             }

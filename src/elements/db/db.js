@@ -174,7 +174,7 @@ DB.prototype.tripInfo = function(trip_ids, serviceID, depart, arrive, time) {
 DB.prototype.stations = function() {
   var stops = this.db.getSchema().table('stops');
   return this.db
-    .select(stops.stop_name)
+    .select(stops.stop_name, stops.stop_lat, stops.stop_lon)
     .from(stops)
     .orderBy(stops.stop_name)
     .groupBy(stops.stop_name)

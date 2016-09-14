@@ -22703,7 +22703,21 @@ Polymer({
 
   });
 Polymer({
-      is: 'page-home'
+      is: 'page-home',
+      properties: {
+        arrive: {
+          type: Array,
+          value: function() {
+            return [0, 0];
+          }
+        },
+        depart: {
+          type: Array,
+          value: function() {
+            return [0, 0];
+          }
+        }
+      }
     });
 /**
 Use `Polymer.PaperDialogBehavior` and `paper-dialog-shared-styles.html` to implement a Material Design
@@ -47840,7 +47854,7 @@ DB.prototype.tripInfo = function(trip_ids, serviceID, depart, arrive, time) {
 DB.prototype.stations = function() {
   var stops = this.db.getSchema().table('stops');
   return this.db
-    .select(stops.stop_name)
+    .select(stops.stop_name, stops.stop_lat, stops.stop_lon)
     .from(stops)
     .orderBy(stops.stop_name)
     .groupBy(stops.stop_name)
@@ -47932,6 +47946,12 @@ Polymer({
           type: Number,
           observer: '_departIndexChanged'
         },
+        departCoord: {
+          type: Array,
+          value: function() {
+            return [0, 0];
+          }
+        },
         arriveStation: {
           type: String,
           value: 'Mt View Caltrain'
@@ -47939,6 +47959,12 @@ Polymer({
         arriveIndex: {
           type: Number,
           observer: '_arriveIndexChanged'
+        },
+        arriveCoord: {
+          type: Array,
+          value: function() {
+            return [0, 0];
+          }
         },
         time: {
           type:String,
@@ -47988,6 +48014,8 @@ Polymer({
             this.set('stations', data);
             this.set('departIndex', _.findIndex(data, {stop_name: this.departStation}));
             this.set('arriveIndex', _.findIndex(data, {stop_name: this.arriveStation}));
+            this._updateStationCoord('departCoord', this.departIndex);
+            this._updateStationCoord('arriveCoord', this.arriveIndex);
           }.bind(this));
       },
       _updateTrainList: function() {
@@ -47997,6 +48025,11 @@ Polymer({
               this.set('trainRoutes', data);
             }.bind(this));
         }
+      },
+      _updateStationCoord: function(coord, index) {
+        var s = this.stations[index];
+        this.set(coord, [s.stop_lat, s.stop_lon]);
+        window.dispatchEvent(new Event('resize'));
       },
       _dayIndexChanged: function(newIndex, oldIndex) {
         if(this.ready){
@@ -48015,7 +48048,7 @@ Polymer({
           
           if(this.stations[newVal]){
             this.set('arriveStation', this.stations[newVal].stop_name);
-            
+            this._updateStationCoord('arriveCoord', newVal);
             if(this.ready){
               this._updateTrainList();
             }
@@ -48027,7 +48060,7 @@ Polymer({
           
           if(this.stations[newVal]){
             this.set('departStation', this.stations[newVal].stop_name);
-            
+            this._updateStationCoord('departCoord', newVal);
             if(this.ready){
               this._updateTrainList();
             }

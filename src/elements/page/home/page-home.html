@@ -21,16 +21,29 @@
   <template>
     <section class="body-container">
       <google-map api-key="AIzaSyAHlGL6xK53aLh9kgs-KEwLX0fkf5Etj8g" latitude="37.77493" longitude="-122.41942" fit-to-markers draggable="false">
-        <google-map-marker latitude="37.779" longitude="-122.3892"
-            title="Go Giants!"></google-map-marker>
-        <google-map-marker latitude="37.777" longitude="-122.38911"></google-map-marker>
+        <google-map-marker latitude="[[arrive.0]]" longitude="[[arrive.1]]"></google-map-marker>
+        <google-map-marker latitude="[[depart.0]]" longitude="[[depart.1]]"></google-map-marker>
       </google-map>
     </section>
   </template>
   
   <script>
     Polymer({
-      is: 'page-home'
+      is: 'page-home',
+      properties: {
+        arrive: {
+          type: Array,
+          value: function() {
+            return [0, 0];
+          }
+        },
+        depart: {
+          type: Array,
+          value: function() {
+            return [0, 0];
+          }
+        }
+      }
     });
   </script>
 </dom-module>
