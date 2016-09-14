@@ -7,7 +7,19 @@ function DB(name, tables) {
   
 DB.prototype.connect = function() {
   return this.schema.connect()
-    .then(this.importData.bind(this));
+    .then(function(database) {
+      this.db = database;
+    }.bind(this))
+    // reload only if required
+    .then(this.hasTableData.bind(this))
+    .then(function(exists){
+      console.log("DB Cached:", exists);
+      return !exists ? Promise.resolve() : Promise.reject();
+    }.bind(this))
+    .then(this.importData.bind(this))
+    .catch(function(){
+      return;
+    });
 };
 
 DB.prototype.tablePromises = function(tables) {
@@ -68,9 +80,18 @@ DB.prototype.loadFile = function(url) {
   });
 };
 
-DB.prototype.importData = function(database) {
-  this.db = database;
+DB.prototype.importData = function() {
   return Promise.all(this.tablePromises(this.tables));
+};
+
+DB.prototype.hasTableData = function() {
+  var table = this.db.getSchema().table('stops');
+  return this.db.select(lf.fn.count(table.id))
+    .from(table)
+    .exec()
+    .then(function(results){
+      return results[0]['COUNT(id)'] > 0;
+    });
 };
 
 DB.prototype.service = function(day) {
@@ -167,7 +188,7 @@ DB.prototype.findRoutes = function(depart, arrive, time, day) {
   var filteredIDs;
   
   // Return none if matching stations
-  if(depart === arrive){
+  if(depart === arrive || this.db == null){
     return new Promise(function(resolve, reject) {
       resolve([]);
     });
@@ -177,8 +198,11 @@ DB.prototype.findRoutes = function(depart, arrive, time, day) {
   return this.service(dayIndex)
    // Get depart stations
    .then(function(results) {
-    serviceID = results[0].service_id;
-    return this.departTrips(serviceID, depart, time);  
+    if(results.length > 0){
+      serviceID = results[0].service_id;
+      return this.departTrips(serviceID, depart, time);
+    }
+    return Promise.reject();
    }.bind(this))
    // Filter arrive stations
    .then(function(results) {
@@ -209,5 +233,8 @@ DB.prototype.findRoutes = function(depart, arrive, time, day) {
        }
      }
      return trips;
+   })
+   .catch(function(){
+     return [];
    });
 };

@@ -8968,7 +8968,7 @@ Polymer.AppLayout = Polymer.AppLayout || {};
             scrollTo(scrollLeft, scrollTop);
           }
         }).bind(this);
-        
+
         updateFrame();
       }
 
@@ -9021,6 +9021,14 @@ Polymer({
         },
 
         /**
+         * The transition duration of the drawer in milliseconds.
+         */
+        transitionDuration: {
+          type: Number,
+          value: 200
+        },
+
+        /**
          * The alignment of the drawer on the screen ('left', 'right', 'start' or 'end').
          * 'start' computes to left and 'end' to right in LTR layout and vice versa in RTL
          * layout.
@@ -9036,7 +9044,6 @@ Polymer({
         position: {
           type: String,
           readOnly: true,
-          value: 'left',
           reflectToAttribute: true
         },
 
@@ -9059,8 +9066,10 @@ Polymer({
       },
 
       observers: [
-        'resetLayout(position)',
-        '_resetPosition(align, isAttached)'
+        'resetLayout(position, isAttached)',
+        '_resetPosition(align, isAttached)',
+        '_styleTransitionDuration(transitionDuration)',
+        '_openedPersistentChanged(opened, persistent)'
       ],
 
       _translateOffset: 0,
@@ -9075,27 +9084,29 @@ Polymer({
 
       _lastTabStop: null,
 
-      ready: function() {
-        // Set the scroll direction so you can vertically scroll inside the drawer.
-        this.setScrollDirection('y');
-
-        // Only transition the drawer after its first render (e.g. app-drawer-layout
-        // may need to set the initial opened state which should not be transitioned).
-        this._setTransitionDuration('0s');
-      },
-
       attached: function() {
         // Only transition the drawer after its first render (e.g. app-drawer-layout
         // may need to set the initial opened state which should not be transitioned).
+        this._styleTransitionDuration(0);
         Polymer.RenderStatus.afterNextRender(this, function() {
-          this._setTransitionDuration('');
+          this._styleTransitionDuration(this.transitionDuration);
           this._boundEscKeydownHandler = this._escKeydownHandler.bind(this);
           this._resetDrawerState();
 
-          this.listen(this, 'track', '_track');
-          this.addEventListener('transitionend', this._transitionend.bind(this));
+          // contentContainer will transition on opened state changed, and scrim will
+          // transition on persistent state changed when opened - these are the
+          // transitions we are interested in.
+          this.$.scrim.addEventListener('transitionend', this._transitionend.bind(this));
+          this.$.contentContainer.addEventListener('transitionend', this._transitionend.bind(this));
+
           this.addEventListener('keydown', this._tabKeydownHandler.bind(this))
+
+          // Only listen for horizontal track so you can vertically scroll inside the drawer.
+          this.listen(this, 'track', '_track');
+          this.setScrollDirection('y');
         });
+
+        this.fire('app-drawer-attached');
       },
 
       detached: function() {
@@ -9133,16 +9144,13 @@ Polymer({
       },
 
       /**
-       * Resets the layout. If you changed the size of app-header via CSS
-       * you can notify the changes by either firing the `iron-resize` event
-       * or calling `resetLayout` directly.
+       * Resets the layout. The event fired is used by app-drawer-layout to position the
+       * content.
        *
        * @method resetLayout
        */
       resetLayout: function() {
-        this.debounce('_resetLayout', function() {
-          this.fire('app-drawer-reset-layout');
-        }, 1);
+        this.fire('app-drawer-reset-layout');
       },
 
       _isRTL: function() {
@@ -9195,7 +9203,7 @@ Polymer({
         this._drawerState = this._DRAWER_STATE.TRACKING;
 
         // Disable transitions since style attributes will reflect user track events.
-        this._setTransitionDuration('0s');
+        this._styleTransitionDuration(0);
         this.style.visibility = 'visible';
 
         var rect = this.$.contentContainer.getBoundingClientRect();
@@ -9246,12 +9254,12 @@ Polymer({
           this.opened = this.position === 'left';
         }
 
-        // Trigger app-drawer-transitioned now since there will be no transitionend event.
         if (isInEndState) {
+          // Reset drawer state now since there will be no transitionend event.
           this._resetDrawerState();
         }
 
-        this._setTransitionDuration('');
+        this._styleTransitionDuration(this.transitionDuration);
         this._resetDrawerTranslate();
         this.style.visibility = '';
       },
@@ -9320,36 +9328,30 @@ Polymer({
 
         // Calculate the amount of time needed to finish the transition based on the
         // initial slope of the timing function.
-        this._setTransitionDuration((this._FLING_INITIAL_SLOPE * dx / velocity) + 'ms');
-        this._setTransitionTimingFunction(this._FLING_TIMING_FUNCTION);
+        this._styleTransitionDuration(this._FLING_INITIAL_SLOPE * dx / velocity);
+        this._styleTransitionTimingFunction(this._FLING_TIMING_FUNCTION);
 
         this._resetDrawerTranslate();
       },
 
-      _transitionend: function(event) {
-        // contentContainer will transition on opened state changed, and scrim will
-        // transition on persistent state changed when opened - these are the
-        // transitions we are interested in.
-        var target = Polymer.dom(event).rootTarget;
-        if (target === this.$.contentContainer || target === this.$.scrim) {
-
-          // If the drawer was flinging, we need to reset the style attributes.
-          if (this._drawerState === this._DRAWER_STATE.FLINGING) {
-            this._setTransitionDuration('');
-            this._setTransitionTimingFunction('');
-            this.style.visibility = '';
-          }
-
-          this._resetDrawerState();
+      _transitionend: function() {
+        // If the drawer was flinging, we need to reset the style attributes.
+        if (this._drawerState === this._DRAWER_STATE.FLINGING) {
+          this._styleTransitionDuration(this.transitionDuration);
+          this._styleTransitionTimingFunction('');
+          this.style.visibility = '';
         }
+
+        this._resetDrawerState();
       },
 
-      _setTransitionDuration: function(duration) {
-        this.$.contentContainer.style.transitionDuration = duration;
-        this.$.scrim.style.transitionDuration = duration;
+      _styleTransitionDuration: function(duration) {
+        this.style.transitionDuration = duration + 'ms';
+        this.$.contentContainer.style.transitionDuration = duration + 'ms';
+        this.$.scrim.style.transitionDuration = duration + 'ms';
       },
 
-      _setTransitionTimingFunction: function(timingFunction) {
+      _styleTransitionTimingFunction: function(timingFunction) {
         this.$.contentContainer.style.transitionTimingFunction = timingFunction;
         this.$.scrim.style.transitionTimingFunction = timingFunction;
       },
@@ -9460,6 +9462,13 @@ Polymer({
         }
       },
 
+      _openedPersistentChanged: function() {
+        if (this.transitionDuration === 0) {
+          // Reset drawer state now since there will be no transitionend event.
+          this._resetDrawerState();
+        }
+      },
+
       _MIN_FLING_THRESHOLD: 0.2,
 
       _MIN_TRANSITION_VELOCITY: 1.2,
@@ -9476,6 +9485,12 @@ Polymer({
         TRACKING: 4,
         FLINGING: 5
       }
+
+      /**
+       * Fired when the layout of app-drawer is attached.
+       *
+       * @event app-drawer-attached
+       */
 
       /**
        * Fired when the layout of app-drawer has changed.
@@ -9793,16 +9808,27 @@ Polymer({
           type: Boolean,
           readOnly: true,
           notify: true
+        },
+
+        /**
+         * If true, the drawer will initially be opened when in narrow layout mode.
+         */
+        openedWhenNarrow: {
+          type: Boolean,
+          value: false
         }
       },
 
       listeners: {
         'tap': '_tapHandler',
-        'app-drawer-reset-layout': 'resetLayout'
+        'app-drawer-attached': '_resetDrawerState',
+        'app-drawer-reset-layout': 'resetLayout',
+        'iron-resize': 'resetLayout'
       },
 
       observers: [
-        'resetLayout(narrow, isAttached)'
+        'resetLayout(narrow, isAttached)',
+        '_narrowChanged(narrow, isAttached)'
       ],
 
       /**
@@ -9817,30 +9843,23 @@ Polymer({
       _tapHandler: function(e) {
         var target = Polymer.dom(e).localTarget;
         if (target && target.hasAttribute('drawer-toggle')) {
-          this.drawer.toggle();
+          var drawer = this.drawer;
+          if (drawer && !drawer.persistent) {
+            drawer.toggle();
+          }
         }
       },
 
       resetLayout: function() {
         this.debounce('_resetLayout', function() {
-          if (!this.isAttached) {
-            return;
-          }
-
           var drawer = this.drawer;
-          var drawerWidth = this.drawer.getWidth();
           var contentContainer = this.$.contentContainer;
 
-          if (this.narrow) {
-            drawer.opened = drawer.persistent = false;
-            contentContainer.classList.add('narrow');
-
+          if (this.narrow || !drawer) {
             contentContainer.style.marginLeft = '';
             contentContainer.style.marginRight = '';
           } else {
-            drawer.opened = drawer.persistent = true;
-            contentContainer.classList.remove('narrow');
-
+            var drawerWidth = drawer.getWidth();
             if (drawer.position == 'right') {
               contentContainer.style.marginLeft = '';
               contentContainer.style.marginRight = drawerWidth + 'px';
@@ -9849,9 +9868,29 @@ Polymer({
               contentContainer.style.marginRight = '';
             }
           }
-
-          this.notifyResize();
         });
+      },
+
+      _resetDrawerState: function() {
+        this.debounce('_resetDrawerState', function() {
+          var drawer = this.drawer;
+          if (!drawer) {
+            return;
+          }
+
+          if (this.narrow) {
+            drawer.opened = this.openedWhenNarrow;
+            drawer.persistent = false;
+          } else {
+            drawer.opened = drawer.persistent = true;
+          }
+        });
+      },
+
+      _narrowChanged: function(narrow) {
+        this.toggleClass('narrow', narrow, this.$.contentContainer);
+        this._resetDrawerState();
+        this.notifyResize();
       },
 
       _onQueryMatchesChanged: function(event) {
@@ -10113,7 +10152,7 @@ Polymer({
    * based on the scroll position.
    *
    * A scroll effect definition is an object with `setUp()`, `tearDown()` and `run()` functions.
-   * 
+   *
    * To register the effect, you can use `Polymer.AppLayout.registerEffect(effectName, effectDef)`
    * For example, let's define an effect that resizes the header's logo:
    *
@@ -10211,6 +10250,29 @@ Polymer({
         type: Boolean,
         reflectToAttribute: true,
         value: false
+      },
+
+      /**
+       * Allows to set a `scrollTop` threshold. When greater than 0, `thresholdTriggered`
+       * is true only when the scroll target's `scrollTop` has reached this value.
+       *
+       * For example, if `threshold = 100`, `thresholdTriggered` is true when the `scrollTop`
+       * is at least `100`.
+       */
+      threshold: {
+        type: Number,
+        value: 0
+      },
+
+      /**
+       * True if the `scrollTop` threshold (set in `scrollTopThreshold`) has
+       * been reached.
+       */
+      thresholdTriggered: {
+        type: Boolean,
+        notify: true,
+        readOnly: true,
+        reflectToAttribute: true
       }
     },
 
@@ -10347,7 +10409,7 @@ Polymer({
       var startsAt = parseFloat(effectsConfig.startsAt || 0);
       var endsAt = parseFloat(effectsConfig.endsAt || 1);
       var deltaS = endsAt - startsAt;
-      var noop = Function();
+      var noop = function() {};
       // fast path if possible
       var runFn = (startsAt === 0 && endsAt === 1) ? effectDef.run :
         function(progress, y) {
@@ -10408,10 +10470,14 @@ Polymer({
      */
     _scrollHandler: function() {
       if (!this.disabled) {
-        this._updateScrollState(this._clampedScrollTop);
+        var scrollTop = this._clampedScrollTop;
+        this._updateScrollState(scrollTop);
+        if (this.threshold > 0) {
+          this._setThresholdTriggered(scrollTop >= this.threshold);
+        }
       }
     },
-    
+
     /**
      * Override this method to return a reference to a node in the local DOM.
      * The node is consumed by a scroll effect.
@@ -10439,10 +10505,10 @@ Polymer({
       properties: {
         /**
          * If true, the header will automatically collapse when scrolling down.
-         * That is, the `primary` element remains visible when the header is fully condensed
-         * whereas the rest of the elements will collapse below `primary` element.
+         * That is, the `sticky` element remains visible when the header is fully condensed
+         * whereas the rest of the elements will collapse below `sticky` element.
          *
-         * By default, the `primary` element is the first toolbar in the light DOM:
+         * By default, the `sticky` element is the first toolbar in the light DOM:
          *
          *```html
          * <app-header condenses>
@@ -10453,18 +10519,18 @@ Polymer({
          * ```
          *
          * Additionally, you can specify which toolbar or element remains visible in condensed mode
-         * by adding the `primary` attribute to that element. For example: if we want the last
-         * toolbar to remain visible, we can add the `primary` attribute to it.
+         * by adding the `sticky` attribute to that element. For example: if we want the last
+         * toolbar to remain visible, we can add the `sticky` attribute to it.
          *
          *```html
          * <app-header condenses>
          *   <app-toolbar></app-toolbar>
          *   <app-toolbar></app-toolbar>
-         *   <app-toolbar primary>This toolbar remains on top</app-toolbar>
+         *   <app-toolbar sticky>This toolbar remains on top</app-toolbar>
          * </app-header>
          * ```
          *
-         * Note the `primary` element must be a child of `app-header`.
+         * Note the `sticky` element must be a direct child of `app-header`.
          */
         condenses: {
           type: Boolean,
@@ -10520,18 +10586,18 @@ Polymer({
       _dHeight: 0,
 
       /**
-       * The offsetTop of `_primaryEl`
+       * The offsetTop of `_stickyEl`
        *
        * @type {number}
        */
-      _primaryElTop: 0,
+      _stickyElTop: 0,
 
       /**
        * The element that remains visible when the header condenses.
        *
        * @type {HTMLElement}
        */
-      _primaryEl: null,
+      _stickyEl: null,
 
       /**
        * The header's top value used for the `transformY`
@@ -10563,27 +10629,27 @@ Polymer({
       },
 
       /**
-       * Returns a reference to the element that remains visible when the header condenses.
+       * Returns a reference to the sticky element.
        *
        * @return {HTMLElement}?
        */
-      _getPrimaryEl: function() {
+      _getStickyEl: function() {
         /** @type {HTMLElement} */
-        var primaryEl;
+        var stickyEl;
         var nodes = Polymer.dom(this.$.content).getDistributedNodes();
 
         for (var i = 0; i < nodes.length; i++) {
           if (nodes[i].nodeType === Node.ELEMENT_NODE) {
             var node = /** @type {HTMLElement} */ (nodes[i]);
-            if (node.hasAttribute('primary')) {
-              primaryEl = node;
+            if (node.hasAttribute('sticky')) {
+              stickyEl = node;
               break;
-            } else if (!primaryEl) {
-              primaryEl = node;
+            } else if (!stickyEl) {
+              stickyEl = node;
             }
           }
         }
-        return primaryEl;
+        return stickyEl;
       },
 
       /**
@@ -10607,7 +10673,7 @@ Polymer({
           var currentDisabled = this.disabled;
 
           this._height = this.offsetHeight;
-          this._primaryEl = this._getPrimaryEl();
+          this._stickyEl = this._getStickyEl();
           this.disabled = true;
 
           // prepare for measurement
@@ -10616,12 +10682,12 @@ Polymer({
           }
 
           if (this._mayMove()) {
-            this._dHeight = this._primaryEl ? this._height - this._primaryEl.offsetHeight : 0;
+            this._dHeight = this._stickyEl ? this._height - this._stickyEl.offsetHeight : 0;
           } else {
             this._dHeight = 0;
           }
 
-          this._primaryElTop = this._primaryEl ? this._primaryEl.offsetTop : 0;
+          this._stickyElTop = this._stickyEl ? this._stickyEl.offsetTop : 0;
           this._setUpEffect();
 
           if (firstSetup) {
@@ -10758,9 +10824,9 @@ Polymer({
        */
       _transformHeader: function(y) {
         this.translate3d(0, (-y) + 'px', 0);
-        if (this._primaryEl && this.condenses && y >= this._primaryElTop) {
-          this.translate3d(0, (Math.min(y, this._dHeight) - this._primaryElTop) + 'px', 0,
-              this._primaryEl);
+        if (this._stickyEl && this.condenses && y >= this._stickyElTop) {
+          this.translate3d(0, (Math.min(y, this._dHeight) - this._stickyElTop) + 'px', 0,
+              this._stickyEl);
         }
       },
 
@@ -10800,8 +10866,8 @@ Polymer({
           case 'background':
             this._ensureBgContainers();
             return this._bgContainer;
-          case 'title':
-            return Polymer.dom(this).querySelector('[title]');
+          case 'mainTitle':
+            return Polymer.dom(this).querySelector('[main-title]');
           case 'condensedTitle':
             return Polymer.dom(this).querySelector('[condensed-title]');
         }
@@ -10878,11 +10944,9 @@ Polymer({
         if (!this.isAttached || !header) {
           return;
         }
-
         // Get header height here so that style reads are batched together before style writes
         // (i.e. getBoundingClientRect() below).
         var headerHeight = header.offsetHeight;
-
         // Update the header position.
         if (!this.hasScrollingRegion) {
           var rect = this.getBoundingClientRect();
@@ -10893,7 +10957,6 @@ Polymer({
           header.style.left = '';
           header.style.right = '';
         }
-
         // Update the content container position.
         var containerStyle = this.$.contentContainer.style;
         if (header.fixed && !header.willCondense() && this.hasScrollingRegion) {
@@ -10926,6 +10989,10 @@ Polymer({
 Polymer({
       is: 'app-scrollpos-control',
 
+      behaviors: [
+        Polymer.IronScrollTargetBehavior
+      ],
+
       properties: {
         /**
          * The selected page.
@@ -10954,7 +11021,7 @@ Polymer({
 
       _selectedChanged: function(selected, old) {
         if (old != null) {
-          this._scrollposMap[old] = {x: window.pageXOffset, y: window.pageYOffset};
+          this._scrollposMap[old] = {x: this._scrollLeft, y: this._scrollTop};
         }
       },
 
@@ -10962,18 +11029,10 @@ Polymer({
         this.debounce('_updateScrollPos', function() {
           var pos = this._scrollposMap[this.selected];
           if (pos != null && !this.reset) {
-            this._scrollTo(pos.x, pos.y);
+            this.scroll(pos.x, pos.y);
           } else {
-            this._scrollTo(0, 0);
+            this.scroll(0, 0);
           }
-        });
-      },
-
-      _scrollTo: function(x, y) {
-        Polymer.AppLayout.scroll({
-          left: x,
-          top: y,
-          behavior: 'silent'
         });
       }
     });
@@ -19863,6 +19922,854 @@ Polymer({
       Polymer.PaperInputBehavior
     ]
   });
+function MakePromise (asap) {
+  function Promise(fn) {
+		if (typeof this !== 'object' || typeof fn !== 'function') throw new TypeError();
+		this._state = null;
+		this._value = null;
+		this._deferreds = []
+
+		doResolve(fn, resolve.bind(this), reject.bind(this));
+	}
+
+	function handle(deferred) {
+		var me = this;
+		if (this._state === null) {
+			this._deferreds.push(deferred);
+			return
+		}
+		asap(function() {
+			var cb = me._state ? deferred.onFulfilled : deferred.onRejected
+			if (typeof cb !== 'function') {
+				(me._state ? deferred.resolve : deferred.reject)(me._value);
+				return;
+			}
+			var ret;
+			try {
+				ret = cb(me._value);
+			}
+			catch (e) {
+				deferred.reject(e);
+				return;
+			}
+			deferred.resolve(ret);
+		})
+	}
+
+	function resolve(newValue) {
+		try { //Promise Resolution Procedure: https://github.com/promises-aplus/promises-spec#the-promise-resolution-procedure
+			if (newValue === this) throw new TypeError();
+			if (newValue && (typeof newValue === 'object' || typeof newValue === 'function')) {
+				var then = newValue.then;
+				if (typeof then === 'function') {
+					doResolve(then.bind(newValue), resolve.bind(this), reject.bind(this));
+					return;
+				}
+			}
+			this._state = true;
+			this._value = newValue;
+			finale.call(this);
+		} catch (e) { reject.call(this, e); }
+	}
+
+	function reject(newValue) {
+		this._state = false;
+		this._value = newValue;
+		finale.call(this);
+	}
+
+	function finale() {
+		for (var i = 0, len = this._deferreds.length; i < len; i++) {
+			handle.call(this, this._deferreds[i]);
+		}
+		this._deferreds = null;
+	}
+
+	/**
+	 * Take a potentially misbehaving resolver function and make sure
+	 * onFulfilled and onRejected are only called once.
+	 *
+	 * Makes no guarantees about asynchrony.
+	 */
+	function doResolve(fn, onFulfilled, onRejected) {
+		var done = false;
+		try {
+			fn(function (value) {
+				if (done) return;
+				done = true;
+				onFulfilled(value);
+			}, function (reason) {
+				if (done) return;
+				done = true;
+				onRejected(reason);
+			})
+		} catch (ex) {
+			if (done) return;
+			done = true;
+			onRejected(ex);
+		}
+	}
+
+	Promise.prototype['catch'] = function (onRejected) {
+		return this.then(null, onRejected);
+	};
+
+	Promise.prototype.then = function(onFulfilled, onRejected) {
+		var me = this;
+		return new Promise(function(resolve, reject) {
+      handle.call(me, {
+        onFulfilled: onFulfilled,
+        onRejected: onRejected,
+        resolve: resolve,
+        reject: reject
+      });
+		})
+	};
+
+	Promise.resolve = function (value) {
+		if (value && typeof value === 'object' && value.constructor === Promise) {
+			return value;
+		}
+
+		return new Promise(function (resolve) {
+			resolve(value);
+		});
+	};
+
+	Promise.reject = function (value) {
+		return new Promise(function (resolve, reject) {
+			reject(value);
+		});
+	};
+
+	
+  return Promise;
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = MakePromise;
+};
+if (!window.Promise) {
+  window.Promise = MakePromise(Polymer.Base.async);
+};
+Promise.all = Promise.all || function () {
+  var args = Array.prototype.slice.call(arguments.length === 1 && Array.isArray(arguments[0]) ? arguments[0] : arguments);
+
+  return new Promise(function (resolve, reject) {
+    if (args.length === 0) return resolve([]);
+    var remaining = args.length;
+    function res(i, val) {
+      try {
+        if (val && (typeof val === 'object' || typeof val === 'function')) {
+          var then = val.then;
+          if (typeof then === 'function') {
+            then.call(val, function (val) { res(i, val) }, reject);
+            return;
+          }
+        }
+        args[i] = val;
+        if (--remaining === 0) {
+          resolve(args);
+        }
+      } catch (ex) {
+        reject(ex);
+      }
+    }
+    for (var i = 0; i < args.length; i++) {
+      res(i, args[i]);
+    }
+  });
+};
+
+Promise.race = Promise.race || function (values) {
+  return new Promise(function (resolve, reject) {
+    for(var i = 0, len = values.length; i < len; i++) {
+      values[i].then(resolve, reject);
+    }
+  });
+};
+(function() {
+    'use strict';
+
+    var SPLICES_RX = /\.splices$/;
+    var LENGTH_RX = /\.length$/;
+    var NUMBER_RX = /\.?#?([0-9]+)$/;
+
+    /**
+     * AppStorageBehavior is an abstract behavior that makes it easy to
+     * synchronize in-memory data and a persistant storage system, such as
+     * the browser's IndexedDB, or a remote database like Firebase.
+     *
+     * For examples of how to use this behavior to write your own app storage
+     * elements see `<app-localstorage-document>` here, or check out
+     * [polymerfire](https://github.com/Firebase/polymerfire) and
+     * [app-pouchdb](https://github.com/PolymerElements/app-pouchdb).
+     *
+     * @polymerBehavior
+     */
+    Polymer.AppStorageBehavior = {
+      properties: {
+        /**
+         * The data to synchronize.
+         */
+        data: {
+          type: Object,
+          notify: true,
+          value: function() {
+            return this.zeroValue;
+          }
+        },
+
+        /**
+         * If this is true transactions will happen one after the other,
+         * never in parallel.
+         *
+         * Specifically, no transaction will begin until every previously
+         * enqueued transaction by this element has completed.
+         *
+         * If it is false, new transactions will be executed as they are
+         * received.
+         */
+        sequentialTransactions: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * When true, will perform detailed logging.
+         */
+        log: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      observers: [
+        '__dataChanged(data.*)'
+      ],
+
+      created: function() {
+        this.__initialized = false;
+        this.__syncingToMemory = false;
+        this.__initializingStoredValue = null;
+        this.__transactionQueueAdvances = Promise.resolve();
+      },
+
+      ready: function() {
+        this._initializeStoredValue();
+      },
+
+      /**
+       * Override this getter to return true if the value has never been
+       * persisted to storage.
+       *
+       * @type {boolean}
+       */
+      get isNew() {
+        return true;
+      },
+
+      /**
+       * A promise that will resolve once all queued transactions
+       * have completed.
+       *
+       * This field is updated as new transactions are enqueued, so it will
+       * only wait for transactions which were enqueued when the field
+       * was accessed.
+       *
+       * This promise never rejects.
+       *
+       * @type {Promise}
+       */
+      get transactionsComplete() {
+        return this.__transactionQueueAdvances;
+      },
+
+      /**
+       * Override this getter to define the default value to use when
+       * there's no data stored.
+       *
+       * @type {*}
+       */
+      get zeroValue() {
+        return undefined;
+      },
+
+      /**
+       * Override this method.
+       *
+       * If the data value represented by this storage instance is new, this
+       * method generates an attempt to write the value to storage.
+       *
+       * @abstract
+       * @return {Promise} a Promise that settles only once the write has.
+       */
+      save: function() {
+        return Promise.resolve();
+      },
+
+      /**
+       * Optional. Override this method to clear out the mapping of this
+       * storage object and a logical location within storage.
+       *
+       * If this method is supported, after it's called, isNew() should be
+       * true.
+       */
+      reset: function() {},
+
+      /**
+       * Remove the data from storage.
+       *
+       * @return {Promise} A promise that settles once the destruction is
+       *   complete.
+       */
+      destroy: function() {
+        this.data = this.zeroValue;
+        return this.save();
+      },
+
+      /**
+       * Perform the initial sync between storage and memory. This method
+       * is called automatically while the element is being initialized.
+       * Implementations may override it.
+       *
+       * If an implementation intends to call this method, it should instead
+       * call _initializeStoredValue, which provides reentrancy protection.
+       *
+       * @return {Promise} A promise that settles once this process is
+       *     complete.
+       */
+      initializeStoredValue: function() {
+        if (this.isNew) {
+          return Promise.resolve();
+        }
+
+        // If this is not a "new" model, then we should attempt
+        // to read an initial value from storage:
+        return this._getStoredValue('data').then(function(data) {
+          this._log('Got stored value!', data, this.data);
+          if (data == null) {
+            return this._setStoredValue(
+                'data', this.data || this.zeroValue);
+          } else {
+            this.syncToMemory(function() {
+              this.set('data', data);
+            });
+          }
+        }.bind(this));
+      },
+
+      /**
+       * Override this method to implement reading a value from storage.
+       *
+       * @abstract
+       * @param {string} storagePath The path (through storage) of the value to
+       *   create, relative to the root of storage associated with this instance.
+       * @return {Promise} A promise that resolves with the canonical value stored
+       *   at the provided path when the transaction has completed. _If there is no
+       *   such value at she provided path through storage, then the promise will
+       *   resolve to `undefined`._ The promise will be rejected if the transaction
+       *   fails for any reason.
+       */
+      getStoredValue: function(storagePath) {
+        return Promise.resolve();
+      },
+
+      /**
+       * Override this method to implement creating and updating
+       * stored values.
+       *
+       * @abstract
+       * @param {string} storagePath The path of the value to update, relative
+       *   to the root storage path configured for this instance.
+       * @param {*} value The updated in-memory value to apply to the stored value
+       *   at the provided path.
+       * @return {Promise} A promise that resolves with the canonical value stored
+       *   at the provided path when the transaction has completed. The promise
+       *   will be rejected if the transaction fails for any reason.
+       */
+      setStoredValue: function(storagePath, value) {
+        return Promise.resolve(value);
+      },
+
+      /**
+       * Maps a Polymer databinding path to the corresponding path in the
+       * storage system. Override to define a custom mapping.
+       *
+       * The inverse of storagePathToMemoryPath.
+       *
+       * @param {string} path An in-memory path through a storage object.
+       * @return {string} The provided path mapped to the equivalent location in
+       *   storage. This mapped version of the path is suitable for use with the
+       *   CRUD operations on both memory and storage.
+       */
+      memoryPathToStoragePath: function(path) {
+        return path;
+      },
+
+      /**
+       * Maps a storage path to the corresponding Polymer databinding path.
+       * Override to define a custom mapping.
+       *
+       * The inverse of memoryPathToStoragePath.
+       *
+       * @param {string} path The storage path through a storage object.
+       * @return {string} The provided path through storage mapped to the
+       *   equivalent Polymer path through the in-memory representation of storage.
+       */
+      storagePathToMemoryPath: function(path) {
+        return path;
+      },
+
+      /**
+       * Enables performing transformations on the in-memory representation of
+       * storage without activating observers that will cause those
+       * transformations to be re-applied to the storage backend. This is useful
+       * for preventing redundant (or cyclical) application of transformations.
+       *
+       * @param {Function} operation A function that will perform the desired
+       *   transformation. It will be called synchronously, when it is safe to
+       *   apply the transformation.
+       */
+      syncToMemory: function(operation) {
+        if (this.__syncingToMemory) {
+          return;
+        }
+
+        this._group('Sync to memory.');
+
+        this.__syncingToMemory = true;
+        operation.call(this);
+        this.__syncingToMemory = false;
+
+        this._groupEnd('Sync to memory.');
+      },
+
+      /**
+       * A convenience method. Returns true iff value is null, undefined,
+       * an empty array, or an object with no keys.
+       */
+      valueIsEmpty: function(value) {
+        if (Array.isArray(value)) {
+          return value.length === 0;
+        } else if (Object.prototype.isPrototypeOf(value)) {
+          return Object.keys(value).length === 0;
+        } else {
+          return value == null;
+        }
+      },
+
+      /**
+       * Like `getStoredValue` but called with a Polymer path rather than
+       * a storage path.
+       *
+       * @param {string} path The Polymer path to get.
+       * @return {Promise} A Promise of the value stored at that path.
+       */
+      _getStoredValue: function(path) {
+        return this.getStoredValue(this.memoryPathToStoragePath(path));
+      },
+
+      /**
+       * Like `setStoredValue` but called with a Polymer path rather than
+       * a storage path.
+       *
+       * @param {string} path The Polymer path to update.
+       * @param {*} value The updated in-memory value to apply to the stored value
+       *   at the provided path.
+       * @return {Promise} A promise that resolves with the canonical value stored
+       *   at the provided path when the transaction has completed. The promise
+       *   will be rejected if the transaction fails for any reason.
+       */
+      _setStoredValue: function(path, value) {
+        return this.setStoredValue(this.memoryPathToStoragePath(path), value);
+      },
+
+      /**
+       * Enqueues the given function in the transaction queue.
+       *
+       * The transaction queue allows for optional parallelism/sequentiality
+       * via the `sequentialTransactions` boolean property, as well as giving
+       * the user a convenient way to wait for all pending transactions to
+       * finish.
+       *
+       * The given function may be called immediately or after an arbitrary
+       * delay. Its `this` context will be bound to the element.
+       *
+       * If the transaction performs any asynchronous operations it must
+       * return a promise.
+       *
+       * @param {Function} transaction A function implementing the transaction.
+       * @return {Promise} A promise that resolves once the transaction has
+       *   finished. This promise will never reject.
+       */
+      _enqueueTransaction: function(transaction) {
+        if (this.sequentialTransactions) {
+          transaction = transaction.bind(this);
+        } else {
+          var result = transaction.call(this);
+          transaction = function() {
+            return result;
+          };
+        }
+
+        return this.__transactionQueueAdvances = this.__transactionQueueAdvances
+            .then(transaction)
+            .catch(function(error) {
+              this._error('Error performing queued transaction.', error);
+            }.bind(this));
+      },
+
+      /**
+       * A wrapper around `console.log`.
+       */
+      _log: function() {
+        if (this.log) {
+          console.log.apply(console, arguments);
+        }
+      },
+
+      /**
+       * A wrapper around `console.error`.
+       */
+      _error: function() {
+        if (this.log) {
+          console.error.apply(console, arguments);
+        }
+      },
+
+      /**
+       * A wrapper around `console.group`.
+       */
+      _group: function() {
+        if (this.log) {
+          console.group.apply(console, arguments);
+        }
+      },
+
+      /**
+       * A wrapper around `console.groupEnd`.
+       */
+      _groupEnd: function() {
+        if (this.log) {
+          console.groupEnd.apply(console, arguments);
+        }
+      },
+
+      /**
+       * A reentrancy-save wrapper around `this.initializeStoredValue`.
+       * Prefer calling this method over that one.
+       *
+       * @return {Promise} The result of calling `initializeStoredValue`,
+       *   or `undefined` if called while initializing.
+       */
+      _initializeStoredValue: function() {
+        if (this.__initializingStoredValue) {
+          return;
+        }
+
+        this._group('Initializing stored value.');
+
+        var initializingStoredValue =
+            this.__initializingStoredValue =
+            this.initializeStoredValue().then(function() {
+              this.__initialized = true;
+              this.__initializingStoredValue = null;
+              this._groupEnd('Initializing stored value.');
+            }.bind(this));
+
+        return this._enqueueTransaction(function() {
+          return initializingStoredValue;
+        });
+      },
+
+      __dataChanged: function(change) {
+        if (this.isNew ||
+            this.__syncingToMemory ||
+            !this.__initialized ||
+            this.__pathCanBeIgnored(change.path)) {
+          return;
+        }
+
+        var path = this.__normalizeMemoryPath(change.path);
+        var value = change.value;
+        var indexSplices = value && value.indexSplices;
+
+        this._enqueueTransaction(function() {
+
+          this._log('Setting', path + ':', indexSplices || value);
+
+          if (indexSplices && this.__pathIsSplices(path)) {
+            path = this.__parentPath(path);
+            value = this.get(path);
+          }
+
+          return this._setStoredValue(path, value);
+        });
+      },
+
+      __normalizeMemoryPath: function(path) {
+        var parts = path.split('.');
+        var parentPath = [];
+        var currentPath = [];
+        var normalizedPath = [];
+        var index;
+
+        for (var i = 0; i < parts.length; ++i) {
+          currentPath.push(parts[i]);
+          if (/^#/.test(parts[i])) {
+            normalizedPath.push(
+                this.get(parentPath).indexOf(this.get(currentPath)));
+          } else {
+            normalizedPath.push(parts[i]);
+          }
+          parentPath.push(parts[i]);
+        }
+
+        return normalizedPath.join('.');
+      },
+
+      __parentPath: function(path) {
+        var parentPath = path.split('.');
+        return parentPath.slice(0, parentPath.length - 1).join('.');
+      },
+
+      __pathCanBeIgnored: function(path) {
+        return LENGTH_RX.test(path) &&
+            Array.isArray(this.get(this.__parentPath(path)));
+      },
+
+      __pathIsSplices: function(path) {
+        return SPLICES_RX.test(path) &&
+            Array.isArray(this.get(this.__parentPath(path)));
+      },
+
+      __pathRefersToArray: function(path) {
+        return (SPLICES_RX.test(path) || LENGTH_RX.test(path))
+            Array.isArray(this.get(this.__parentPath(path)));
+      },
+
+      __pathTailToIndex: function(path) {
+        var tail = path.split('.').pop();
+        return window.parseInt(tail.replace(NUMBER_RX, '$1'), 10);
+      }
+    };
+  })();
+'use strict';
+
+    /**
+     * app-localstorage-document synchronizes storage between an in-memory
+     * value and a location in the browser's localStorage system.
+     *
+     * localStorage is a simple and widely supported storage API that provides both
+     * permanent and session-based storage options. Using app-localstorage-document
+     * you can easily integrate localStorage into your app via normal Polymer
+     * databinding.
+     *
+     * app-localstorage-document is the reference implementation of an element
+     * that uses `AppStorageBehavior`. Reading its code is a good way to get
+     * started writing your own storage element.
+     *
+     * Example use:
+     *
+     *     <paper-input value="{{search}}"></paper-input>
+     *     <app-localstorage-document key="search" data="{{search}}">
+     *     </app-localstorage-document>
+     *
+     * app-localstorage-document automatically synchronizes changes to the
+     * same key across multiple tabs.
+     *
+     * Only supports storing JSON-serializable values.
+     */
+    Polymer({
+      is: 'app-localstorage-document',
+
+      behaviors: [
+        Polymer.AppStorageBehavior
+      ],
+
+      properties: {
+        /**
+         * Defines the logical location to store the data.
+         */
+        key: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * If true, the data will automatically be cleared from storage when
+         * the page session ends (i.e. when the user has navigated away from
+         * the page).
+         */
+        sessionOnly: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Either `window.localStorage` or `window.sessionStorage`, depending on
+         * `this.sessionOnly`.
+         */
+        storage: {
+          type: Object,
+          computed: '__computeStorage(sessionOnly)'
+        }
+      },
+
+      observers: [
+        '__storageSourceChanged(storage, key)'
+      ],
+
+      attached: function() {
+        this.listen(window, 'storage', '__onStorage');
+        this.listen(
+            window.top,
+            'app-local-storage-changed',
+            '__onAppLocalStorageChanged');
+      },
+
+      detached: function() {
+        this.unlisten(window, 'storage', '__onStorage');
+        this.unlisten(
+            window.top,
+            'app-local-storage-changed',
+            '__onAppLocalStorageChanged');
+      },
+
+      /**
+       * @override
+       */
+      get isNew() {
+        return !this.key;
+      },
+
+      /**
+       * Stores a value at the given key, and if successful, updates this.key.
+       *
+       * @override
+       * @param {string} key The new key to use.
+       */
+      save: function(key) {
+        try {
+          this.__setStorageValue(key, this.data);
+        } catch(e) {
+          return Promise.reject(e);
+        }
+
+        this.key = key;
+
+        return Promise.resolve();
+      },
+
+      /**
+       * @override
+       */
+      reset: function() {
+        this.key = null;
+        this.data = this.zeroValue;
+      },
+
+      /**
+       * @override
+       */
+      destroy: function() {
+        try {
+          this.storage.removeItem(this.key);
+          this.reset();
+        } catch (e) {
+          return Promise.reject(e);
+        }
+
+        return Promise.resolve();
+      },
+
+      /**
+       * @override
+       */
+      getStoredValue: function(path) {
+        var value;
+
+        if (this.key != null) {
+          try {
+            value = this.__parseValueFromStorage();
+
+            if (value != null) {
+              value = this.get(path, {
+                data: value
+              });
+            } else {
+              value = undefined;
+            }
+          } catch (e) {
+            return Promise.reject(e);
+          }
+        }
+
+        return Promise.resolve(value);
+      },
+
+      /**
+       * @override
+       */
+      setStoredValue: function(path, value) {
+        if (this.key != null) {
+          try {
+            this.__setStorageValue(this.key, this.data);
+          } catch (e) {
+            return Promise.reject(e);
+          }
+
+          this.fire('app-local-storage-changed', this, {
+            node: window.top
+          });
+        }
+
+        return Promise.resolve(value);
+      },
+
+      __computeStorage: function(sessionOnly) {
+        return sessionOnly ? window.sessionStorage : window.localStorage;
+      },
+
+      __storageSourceChanged: function(storage, key) {
+        this._initializeStoredValue();
+      },
+
+      __onStorage: function(event) {
+        if (event.key !== this.key ||
+            event.storageArea !== this.storage) {
+          return;
+        }
+
+        this.syncToMemory(function() {
+          this.set('data', this.__parseValueFromStorage());
+        });
+      },
+
+      __onAppLocalStorageChanged: function(event) {
+        if (event.detail === this ||
+            event.detail.key !== this.key ||
+            event.detail.storage !== this.storage) {
+          return;
+        }
+        this.syncToMemory(function() {
+          this.set('data', event.detail.data);
+        });
+      },
+
+      __parseValueFromStorage: function() {
+        try {
+          return JSON.parse(this.storage.getItem(this.key));
+        } catch(e) {
+          console.error('Failed to parse value from storage for', this.key);
+        }
+      },
+
+      __setStorageValue: function(key, value) {
+        this.storage.setItem(this.key, JSON.stringify(this.data));
+      }
+    });
 Polymer({
       is: 'iron-image',
 
@@ -46766,7 +47673,19 @@ function DB(name, tables) {
   
 DB.prototype.connect = function() {
   return this.schema.connect()
-    .then(this.importData.bind(this));
+    .then(function(database) {
+      this.db = database;
+    }.bind(this))
+    // reload only if required
+    .then(this.hasTableData.bind(this))
+    .then(function(exists){
+      console.log("DB Cached:", exists);
+      return !exists ? Promise.resolve() : Promise.reject();
+    }.bind(this))
+    .then(this.importData.bind(this))
+    .catch(function(){
+      return;
+    });
 };
 
 DB.prototype.tablePromises = function(tables) {
@@ -46827,9 +47746,18 @@ DB.prototype.loadFile = function(url) {
   });
 };
 
-DB.prototype.importData = function(database) {
-  this.db = database;
+DB.prototype.importData = function() {
   return Promise.all(this.tablePromises(this.tables));
+};
+
+DB.prototype.hasTableData = function() {
+  var table = this.db.getSchema().table('stops');
+  return this.db.select(lf.fn.count(table.id))
+    .from(table)
+    .exec()
+    .then(function(results){
+      return results[0]['COUNT(id)'] > 0;
+    });
 };
 
 DB.prototype.service = function(day) {
@@ -46926,7 +47854,7 @@ DB.prototype.findRoutes = function(depart, arrive, time, day) {
   var filteredIDs;
   
   // Return none if matching stations
-  if(depart === arrive){
+  if(depart === arrive || this.db == null){
     return new Promise(function(resolve, reject) {
       resolve([]);
     });
@@ -46936,8 +47864,11 @@ DB.prototype.findRoutes = function(depart, arrive, time, day) {
   return this.service(dayIndex)
    // Get depart stations
    .then(function(results) {
-    serviceID = results[0].service_id;
-    return this.departTrips(serviceID, depart, time);  
+    if(results.length > 0){
+      serviceID = results[0].service_id;
+      return this.departTrips(serviceID, depart, time);
+    }
+    return Promise.reject();
    }.bind(this))
    // Filter arrive stations
    .then(function(results) {
@@ -46968,6 +47899,9 @@ DB.prototype.findRoutes = function(depart, arrive, time, day) {
        }
      }
      return trips;
+   })
+   .catch(function(){
+     return [];
    });
 };
 Polymer({
@@ -46990,23 +47924,21 @@ Polymer({
         subrouteData: {
           type: Object
         },
-        depart: {
+        departStation: {
           type: String,
           value: 'Belmont Caltrain'
         },
         departIndex: {
           type: Number,
-          value: 0,
-          observer: '_departChanged'
+          observer: '_departIndexChanged'
         },
-        arrive: {
+        arriveStation: {
           type: String,
           value: 'Mt View Caltrain'
         },
         arriveIndex: {
           type: Number,
-          value: 0,
-          observer: '_arriveChanged'
+          observer: '_arriveIndexChanged'
         },
         time: {
           type:String,
@@ -47054,13 +47986,13 @@ Polymer({
         return this.db.stations()
           .then(function(data){
             this.set('stations', data);
-            this.set('departIndex', _.findIndex(data, {stop_name: this.depart}));
-            this.set('arriveIndex', _.findIndex(data, {stop_name: this.arrive}));
+            this.set('departIndex', _.findIndex(data, {stop_name: this.departStation}));
+            this.set('arriveIndex', _.findIndex(data, {stop_name: this.arriveStation}));
           }.bind(this));
       },
       _updateTrainList: function() {
         if(this.db){
-          this.db.findRoutes(this.depart, this.arrive, this.time, this._dayLabel(this.dayIndex))
+          this.db.findRoutes(this.departStation, this.arriveStation, this.time, this._dayLabel(this.dayIndex))
             .then(function(data) {
               this.set('trainRoutes', data);
             }.bind(this));
@@ -47078,21 +48010,27 @@ Polymer({
           dialogContainer.firstElementChild.open();
         }
       },
-      _arriveChanged: function(newVal, oldVal) {
+      _arriveIndexChanged: function(newVal, oldVal) {
         if(this.stations !== undefined && this.stations.length > 0){
-          this.set('arrive', this.stations[newVal].stop_name);
           
-          if(this.ready){
-            this._updateTrainList();
+          if(this.stations[newVal]){
+            this.set('arriveStation', this.stations[newVal].stop_name);
+            
+            if(this.ready){
+              this._updateTrainList();
+            }
           }
         }
       },
-      _departChanged: function(newVal, oldVal) {
+      _departIndexChanged: function(newVal, oldVal) {
         if(this.stations !== undefined && this.stations.length > 0){
-          this.set('depart', this.stations[newVal].stop_name);
           
-          if(this.ready){
-            this._updateTrainList();
+          if(this.stations[newVal]){
+            this.set('departStation', this.stations[newVal].stop_name);
+            
+            if(this.ready){
+              this._updateTrainList();
+            }
           }
         }
       }

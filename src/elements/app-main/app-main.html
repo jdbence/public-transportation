@@ -19,9 +19,10 @@
 <link rel="import" href="/bower_components/paper-material/paper-material.html">
 <link rel="import" href="/bower_components/paper-menu/paper-menu.html">
 <link rel="import" href="/bower_components/paper-menu-button/paper-menu-button.html">
-
 <link rel="import" href="/bower_components/paper-item/paper-item.html">
 <link rel="import" href="/bower_components/paper-input/paper-input.html">
+
+<link rel="import" href="/bower_components/app-storage/app-localstorage/app-localstorage-document.html">
 
 <link rel="import" href="/elements/page/home/page-home.html">
 <link rel="import" href="/elements/dialog/stations/dialog-stations.html">
@@ -67,7 +68,7 @@
     }
     .options {
       height: 100%;
-      overflow-y: scroll;
+      overflow-y: auto;
       width: 250px;
     }
     .options-stations {
@@ -100,8 +101,8 @@
     <div class="container flex-layout">
       <div class="options">
         <div class="options-stations">
-          <paper-input label="Depart From" value='[[depart]]' data-dialog="dialogDepart" on-tap="_handleClick"></paper-input>
-          <paper-input label="Arrive To" value='[[arrive]]' data-dialog="dialogArrive" on-tap="_handleClick"></paper-input>
+          <paper-input label="Depart From" value='[[departStation]]' data-dialog="dialogDepart" on-tap="_handleClick"></paper-input>
+          <paper-input label="Arrive To" value='[[arriveStation]]' data-dialog="dialogArrive" on-tap="_handleClick"></paper-input>
         </div>
         <paper-menu-button horizontal-align="right">
           <paper-button class="dropdown-trigger"><iron-icon icon="arrow-drop-down"></iron-icon>{{_dayLabel(dayIndex)}}</paper-button>
@@ -119,8 +120,15 @@
         </iron-pages>
       </div>
     </div>
-    <dialog-stations id="dialogDepart" title="Where are you leaving?" stations={{stations}} selected={{departIndex}}></dialog-stations>
-    <dialog-stations id="dialogArrive" title="Where are you headed?" stations={{stations}} selected={{arriveIndex}}></dialog-stations>
+    
+    <app-localstorage-document key="departStation" data="{{departStation}}"></app-localstorage-document>
+    <app-localstorage-document key="departIndex" data="{{departIndex}}"></app-localstorage-document>
+    <app-localstorage-document key="arriveStation" data="{{arriveStation}}"></app-localstorage-document>
+    <app-localstorage-document key="arriveIndex" data="{{arriveIndex}}"></app-localstorage-document>
+    <app-localstorage-document key="dayIndex" data="{{dayIndex}}"></app-localstorage-document>
+    
+    <dialog-stations id="dialogDepart" title="Where are you leaving?" stations=[[stations]] selected={{departIndex}}></dialog-stations>
+    <dialog-stations id="dialogArrive" title="Where are you headed?" stations=[[stations]] selected={{arriveIndex}}></dialog-stations>
   </template>
   
   <script>
@@ -144,23 +152,21 @@
         subrouteData: {
           type: Object
         },
-        depart: {
+        departStation: {
           type: String,
           value: 'Belmont Caltrain'
         },
         departIndex: {
           type: Number,
-          value: 0,
-          observer: '_departChanged'
+          observer: '_departIndexChanged'
         },
-        arrive: {
+        arriveStation: {
           type: String,
           value: 'Mt View Caltrain'
         },
         arriveIndex: {
           type: Number,
-          value: 0,
-          observer: '_arriveChanged'
+          observer: '_arriveIndexChanged'
         },
         time: {
           type:String,
@@ -208,13 +214,13 @@
         return this.db.stations()
           .then(function(data){
             this.set('stations', data);
-            this.set('departIndex', _.findIndex(data, {stop_name: this.depart}));
-            this.set('arriveIndex', _.findIndex(data, {stop_name: this.arrive}));
+            this.set('departIndex', _.findIndex(data, {stop_name: this.departStation}));
+            this.set('arriveIndex', _.findIndex(data, {stop_name: this.arriveStation}));
           }.bind(this));
       },
       _updateTrainList: function() {
         if(this.db){
-          this.db.findRoutes(this.depart, this.arrive, this.time, this._dayLabel(this.dayIndex))
+          this.db.findRoutes(this.departStation, this.arriveStation, this.time, this._dayLabel(this.dayIndex))
             .then(function(data) {
               this.set('trainRoutes', data);
             }.bind(this));
@@ -232,21 +238,27 @@
           dialogContainer.firstElementChild.open();
         }
       },
-      _arriveChanged: function(newVal, oldVal) {
+      _arriveIndexChanged: function(newVal, oldVal) {
         if(this.stations !== undefined && this.stations.length > 0){
-          this.set('arrive', this.stations[newVal].stop_name);
           
-          if(this.ready){
-            this._updateTrainList();
+          if(this.stations[newVal]){
+            this.set('arriveStation', this.stations[newVal].stop_name);
+            
+            if(this.ready){
+              this._updateTrainList();
+            }
           }
         }
       },
-      _departChanged: function(newVal, oldVal) {
+      _departIndexChanged: function(newVal, oldVal) {
         if(this.stations !== undefined && this.stations.length > 0){
-          this.set('depart', this.stations[newVal].stop_name);
           
-          if(this.ready){
-            this._updateTrainList();
+          if(this.stations[newVal]){
+            this.set('departStation', this.stations[newVal].stop_name);
+            
+            if(this.ready){
+              this._updateTrainList();
+            }
           }
         }
       }
