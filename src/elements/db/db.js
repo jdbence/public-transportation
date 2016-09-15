@@ -25,7 +25,7 @@ DB.prototype.connect = function() {
 DB.prototype.tablePromises = function(tables) {
   var promises = [];
   for(var i = 0; i < tables.length; i++) {
-    promises.push(this.importCSV('/static/' + this.name + '/' + tables[i] + '.txt', tables[i]));
+    promises.push(this.importCSV('static/' + this.name + '/' + tables[i] + '.txt', tables[i]));
   }
   return promises;
 };
