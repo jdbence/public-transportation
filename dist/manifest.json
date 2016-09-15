@@ -1,0 +1,8 @@
+{
+  "name": "public-transportation",
+  "short_name": "pt",
+  "start_url": "",
+  "display": "standalone",
+  "theme_color": "#fafafa",
+  "background_color": "#fafafa"
+}

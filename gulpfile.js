@@ -20,11 +20,11 @@ var gulp = require('gulp'),
 var processVariables = config.production;
 
 // builds html and styles
-gulp.task('default', sequence('html', 'vulcanize', 'styles', 'lint'));//, 'scripts:prod'
+gulp.task('default', sequence('html', 'copy', 'vulcanize', 'styles', 'lint'));//, 'scripts:prod'
 gulp.task('build', ['default']);
 
 // builds for github page
-gulp.task('build:github', sequence('process:github', 'html', 'vulcanize', 'styles', 'lint'));//, 'scripts:prod'
+gulp.task('build:github', sequence('process:github', 'build'));//, 'scripts:prod'
 
 // set as github process variables
 gulp.task('process:github', function (cb) {
@@ -52,6 +52,12 @@ gulp.task('lint', function () {
 gulp.task('html', function () {
   return gulp.src('index.html')
     .pipe(preprocess(processVariables))
+    .pipe(gulp.dest(config.dist));
+});
+
+// copy html to dist folder
+gulp.task('copy', function () {
+  return gulp.src(['manifest.json', 'static/**/*.*'], {base: './'})
     .pipe(gulp.dest(config.dist));
 });
 
@@ -110,7 +116,8 @@ gulp.task('live', ['build'], function () {
       routes: {
         '/node_modules': 'node_modules',
         '/bower_components': 'bower_components',
-        '/styles': 'dist/styles'
+        '/styles': 'dist/styles',
+        '/static': 'static'
       }
     },
     middleware: [history()]
