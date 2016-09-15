@@ -64,6 +64,7 @@ gulp.task('copy', function () {
     'static/**/*.*',
     'bower_components/webcomponentsjs/webcomponents-lite.min.js',
     'bower_components/platinum-sw/bootstrap/*.js',
+    'bower_components/sw-toolbox/sw-toolbox.js',
     'bower_components/platinum-sw/service-worker.js'], {base: './'})
     .pipe(gulp.dest(config.dist));
 });
