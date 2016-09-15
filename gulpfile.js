@@ -20,11 +20,11 @@ var gulp = require('gulp'),
 var processVariables = config.production;
 
 // builds html and styles
-gulp.task('default', sequence('html', 'vulcanize', 'styles', 'lint', 'scripts:prod'));
+gulp.task('default', sequence('html', 'vulcanize', 'styles', 'lint'));//, 'scripts:prod'
 gulp.task('build', ['default']);
 
 // builds for github page
-gulp.task('build:github', sequence('process:github', 'html', 'vulcanize', 'styles', 'lint', 'scripts:prod'));
+gulp.task('build:github', sequence('process:github', 'html', 'vulcanize', 'styles', 'lint'));//, 'scripts:prod'
 
 // set as github process variables
 gulp.task('process:github', function (cb) {
@@ -50,7 +50,7 @@ gulp.task('lint', function () {
 
 // copy html to dist folder
 gulp.task('html', function () {
-  return gulp.src(config.src + '/*.html')
+  return gulp.src('index.html')
     .pipe(preprocess(processVariables))
     .pipe(gulp.dest(config.dist));
 });

@@ -1,5 +1,5 @@
 class App {
-  name = 'polymer-seed!';
+  name = 'public-transportation!';
   _app = null;
   baseURL = '/* @echo BASE_URL */' || '';
   
