@@ -23,6 +23,7 @@
 <link rel="import" href="/bower_components/paper-input/paper-input.html">
 
 <link rel="import" href="/bower_components/app-storage/app-localstorage/app-localstorage-document.html">
+<link rel="import" href="/bower_components/platinum-sw/platinum-sw-elements.html">
 
 <link rel="import" href="/elements/page/home/page-home.html">
 <link rel="import" href="/elements/dialog/stations/dialog-stations.html">
@@ -98,6 +99,14 @@
     <app-route-converter path="{{path}}" route="{{route}}" query-params="{{queryParams}}"></app-route-converter>
     <app-route route="{{route}}" pattern="/:page" data="{{data}}" tail="{{subroute}}"></app-route>
     <app-route route="{{subroute}}" pattern="/:key" data="{{subrouteData}}"></app-route>
+    <platinum-sw-register skip-waiting clients-claim reload-on-install
+      base-uri="bower_components/platinum-sw/"
+      on-service-worker-error="_handleSWError"
+      on-service-worker-updated="_handleSWUpdated"
+      on-service-worker-installed="_handleSWInstalled">
+      <platinum-sw-cache cache-config-file="sw-precache-config.json"></platinum-sw-cache>
+    </platinum-sw-register>
+    
     <div class="container flex-layout">
       <div class="options">
         <div class="options-stations">
@@ -199,11 +208,24 @@
         ready: {
           type: Boolean,
           value: false
+        },
+        precacheList: {
+          type: Array,
+          value: function() {
+            return ['index.html'];
+          }
         }
       },
       ready: function() {
         document.getElementById('skeleton').remove();
         Polymer.dom(this).removeAttribute('unresolved');
+        
+        // kick the register
+        var sw = document.querySelector('platinum-sw-register');
+        console.log("SW: ", sw !== null);
+        if(sw){
+          sw.register();
+        }
         
         this.db = new DB('caltrain', [
           'calendar', 'calendar_dates', 'routes', 'stop_times', 'stops', 'trips'
@@ -280,6 +302,15 @@
             }
           }
         }
+      },
+      _handleSWError: function(e){
+        console.log('_handleSWError', e);
+      },
+      _handleSWUpdated: function(e){
+        console.log('_handleSWUpdated', e);
+      },
+      _handleSWInstalled: function(e){
+        console.log('_handleSWInstalled', e);
       }
     });
   </script>

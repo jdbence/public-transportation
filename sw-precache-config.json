@@ -1,0 +1,18 @@
+{
+  "cacheId": "public-transportation",
+  "defaultCacheStrategy": "networkFirst",
+  "precache": [
+    "/index.html",
+    "/elements/elements.html",
+    "/elements/elements.js",
+    "/manifest.json",
+    "/sw-import.js",
+    "/sw-precache-config.json",
+    "/bower_components/webcomponentsjs/webcomponents-lite.min.js",
+    "/bower_components/platinum-sw/bootstrap/sw-toolbox-setup.js",
+    "/bower_components/platinum-sw/bootstrap/simple-db.js",
+    "/bower_components/platinum-sw/bootstrap/offline-analytics.js",
+    "/bower_components/platinum-sw/service-worker.js",
+    "https://fonts.googleapis.com/css?family=Roboto+Mono:400,700"
+  ]
+}

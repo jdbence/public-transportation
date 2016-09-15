@@ -20,11 +20,11 @@ var gulp = require('gulp'),
 var processVariables = config.production;
 
 // builds html and styles
-gulp.task('default', sequence('html', 'copy', 'vulcanize', 'styles', 'lint'));//, 'scripts:prod'
+gulp.task('default', sequence('html', 'copy', 'styles', 'lint', 'vulcanize', 'scripts:prod'));
 gulp.task('build', ['default']);
 
 // builds for github page
-gulp.task('build:github', sequence('process:github', 'build'));//, 'scripts:prod'
+gulp.task('build:github', sequence('process:github', 'build'));
 
 // set as github process variables
 gulp.task('process:github', function (cb) {
@@ -55,9 +55,16 @@ gulp.task('html', function () {
     .pipe(gulp.dest(config.dist));
 });
 
-// copy html to dist folder
+// copy files to dist folder
 gulp.task('copy', function () {
-  return gulp.src(['manifest.json', 'static/**/*.*'], {base: './'})
+  return gulp.src([
+    'manifest.json',
+    'sw-precache-config.json',
+    'sw-import.js',
+    'static/**/*.*',
+    'bower_components/webcomponentsjs/webcomponents-lite.min.js',
+    'bower_components/platinum-sw/bootstrap/*.js',
+    'bower_components/platinum-sw/service-worker.js'], {base: './'})
     .pipe(gulp.dest(config.dist));
 });
 
@@ -95,7 +102,7 @@ gulp.task('scripts:prod', function () {
   return gulp.src([config.src + '/js/**/*.js', config.tmp + '/elements/**/*.js'])
     //.pipe(preprocess(processVariables))
     //.pipe(sourcemaps.init())
-    .pipe(babel())
+    //.pipe(babel())
     .pipe(concat('elements.js'))
     //.pipe(sourcemaps.write('.'))
     //.pipe(gulp.dest(config.tmp))
@@ -123,19 +130,13 @@ gulp.task('live', ['build'], function () {
     middleware: [history()]
   });
   // changes in src should recompile and reload
-  gulp.watch(config.src + '/**/*.html', ['reload-html']);
-  gulp.watch(config.src + '/js/**/*.js', ['reload-js']);
+  gulp.watch(config.src + '/**/*.{js,html}', ['reload']);
   gulp.watch(config.src + '/styles/**/*.scss', ['styles'], reload);
 });
 
 // run html tasks in sequence and then reload browser
-gulp.task("reload-html", function (cb) {
-  sequence('html', 'vulcanize', reload)(cb);
-});
-
-// run js tasks in sequence and then reload browser
-gulp.task("reload-js", function (cb) {
-  sequence('lint', 'scripts', reload)(cb);
+gulp.task('reload', function (cb) {
+  sequence('html', 'lint', 'vulcanize', 'scripts:prod', reload)(cb);
 });
 
 // scrape all Polymer elements
@@ -163,6 +164,6 @@ gulp.task('vulcanize', function() {
 });
 
 // removes all files from the dist folder
-gulp.task("clean", function () {
+gulp.task('clean', function () {
   return del([config.dist + '/**', '!' + config.dist]);
 });
