@@ -48785,10 +48785,10 @@ Polymer({
           type: Boolean,
           value: false
         },
-        precacheList: {
-          type: Array,
+        registerURI: {
+          String: Array,
           value: function() {
-            return ['index.html'];
+            return window.location.href + 'bower_components/platinum-sw/';
           }
         }
       },

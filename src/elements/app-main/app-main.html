@@ -100,7 +100,7 @@
     <app-route route="{{route}}" pattern="/:page" data="{{data}}" tail="{{subroute}}"></app-route>
     <app-route route="{{subroute}}" pattern="/:key" data="{{subrouteData}}"></app-route>
     <platinum-sw-register skip-waiting clients-claim reload-on-install
-      base-uri="bower_components/platinum-sw/"
+      base-uri="{{registerURI}}"
       on-service-worker-error="_handleSWError"
       on-service-worker-updated="_handleSWUpdated"
       on-service-worker-installed="_handleSWInstalled">
@@ -209,10 +209,10 @@
           type: Boolean,
           value: false
         },
-        precacheList: {
-          type: Array,
+        registerURI: {
+          String: Array,
           value: function() {
-            return ['index.html'];
+            return window.location.href + 'bower_components/platinum-sw/';
           }
         }
       },

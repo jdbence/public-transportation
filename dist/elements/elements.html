@@ -4010,7 +4010,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <app-route-converter path="{{path}}" route="{{route}}" query-params="{{queryParams}}"></app-route-converter>
     <app-route route="{{route}}" pattern="/:page" data="{{data}}" tail="{{subroute}}"></app-route>
     <app-route route="{{subroute}}" pattern="/:key" data="{{subrouteData}}"></app-route>
-    <platinum-sw-register skip-waiting="" clients-claim="" reload-on-install="" base-uri="bower_components/platinum-sw/" on-service-worker-error="_handleSWError" on-service-worker-updated="_handleSWUpdated" on-service-worker-installed="_handleSWInstalled">
+    <platinum-sw-register skip-waiting="" clients-claim="" reload-on-install="" base-uri="{{registerURI}}" on-service-worker-error="_handleSWError" on-service-worker-updated="_handleSWUpdated" on-service-worker-installed="_handleSWInstalled">
       <platinum-sw-cache cache-config-file="sw-precache-config.json"></platinum-sw-cache>
     </platinum-sw-register>
     
