@@ -11,6 +11,7 @@ var gulp = require('gulp'),
   gif = require('gulp-if'),
   preprocess = require('gulp-preprocess'),
   sequence = require('gulp-sequence'),
+  htmlmin = require('gulp-htmlmin'),
   browserSync = require('browser-sync'),
   reload = browserSync.reload,
   history = require('connect-history-api-fallback'),
@@ -20,7 +21,7 @@ var gulp = require('gulp'),
 var processVariables = config.production;
 
 // builds html and styles
-gulp.task('default', sequence('html', 'copy', 'styles', 'lint', 'vulcanize', 'scripts:prod'));
+gulp.task('default', sequence('copy', 'styles', 'lint', 'vulcanize', 'html', 'scripts:prod'));
 gulp.task('build', ['default']);
 
 // builds for github page
@@ -49,15 +50,36 @@ gulp.task('lint', function () {
 });
 
 // copy html to dist folder
-gulp.task('html', function () {
+gulp.task('html', sequence('html-index', 'html-elements'));
+
+gulp.task('html-index', function () {
   return gulp.src('index.html')
     .pipe(preprocess(processVariables))
+    .pipe(htmlmin({
+      collapseWhitespace: true,
+      removeComments: true,
+      removeCommentsFromCDATA: true,
+      minifyCSS: true
+    }))
     .pipe(gulp.dest(config.dist));
+});
+
+gulp.task('html-elements', function () {
+  return gulp.src(config.tmp + '/elements/elements.html')
+    .pipe(preprocess(processVariables))
+    .pipe(htmlmin({
+      collapseWhitespace: true,
+      removeComments: true,
+      removeCommentsFromCDATA: true,
+      minifyCSS: true
+    }))
+    .pipe(gulp.dest(config.dist + '/elements/'));
 });
 
 // copy files to dist folder
 gulp.task('copy', function () {
   return gulp.src([
+    'favicon.ico',
     'manifest.json',
     'sw-precache-config.json',
     'sw-import.js',
@@ -65,7 +87,8 @@ gulp.task('copy', function () {
     'bower_components/webcomponentsjs/webcomponents-lite.min.js',
     'bower_components/platinum-sw/bootstrap/*.js',
     'bower_components/sw-toolbox/sw-toolbox.js',
-    'bower_components/platinum-sw/service-worker.js'], {base: './'})
+    'bower_components/platinum-sw/service-worker.js'
+  ], {base: './'})
     .pipe(gulp.dest(config.dist));
 });
 
@@ -105,6 +128,7 @@ gulp.task('scripts:prod', function () {
     //.pipe(sourcemaps.init())
     //.pipe(babel())
     .pipe(concat('elements.js'))
+    .pipe(uglify())
     //.pipe(sourcemaps.write('.'))
     //.pipe(gulp.dest(config.tmp))
     .pipe(gulp.dest(config.dist + '/elements/'));
@@ -137,7 +161,7 @@ gulp.task('live', ['build'], function () {
 
 // run html tasks in sequence and then reload browser
 gulp.task('reload', function (cb) {
-  sequence('html', 'lint', 'vulcanize', 'scripts:prod', reload)(cb);
+  sequence('lint', 'vulcanize', 'html', 'scripts:prod', reload)(cb);
 });
 
 // scrape all Polymer elements
@@ -160,8 +184,8 @@ gulp.task('vulcanize', function() {
       scriptInHead: false,
       onlySplit: true
     }))
-    .pipe(gulp.dest(config.tmp + '/elements'))
-    .pipe(gulp.dest(config.dist + '/elements'));
+    .pipe(gulp.dest(config.tmp + '/elements'));
+    //.pipe(gulp.dest(config.dist + '/elements'));
 });
 
 // removes all files from the dist folder
