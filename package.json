@@ -51,6 +51,7 @@
     "gulp-cache": "^0.4.5",
     "gulp-concat": "^2.6.0",
     "gulp-eslint": "^3.0.1",
+    "gulp-htmlmin": "^2.0.0",
     "gulp-preprocess": "^2.0.0",
     "gulp-sass": "^2.3.2",
     "gulp-sequence": "^0.4.5",
